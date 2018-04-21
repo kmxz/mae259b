@@ -1,0 +1,75 @@
+<html>
+<head>
+    <title>My first three.js app</title>
+    <style>
+        body { margin: 0; }
+        canvas { width: 100%; height: 100% }
+    </style>
+</head>
+<body>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.min.js"></script>
+<script>
+    const render = (data, keyframeInterval) => {
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        document.body.appendChild( renderer.domElement );
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+        camera.position.set( 30, -10, 50 );
+        camera.lookAt( new THREE.Vector3( 30, -10, 0 ) );
+
+        const scene = new THREE.Scene();
+
+        // create a blue LineBasicMaterial
+        const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+        const geometry = new THREE.Geometry();
+        data[0].forEach(entry =>
+            geometry.vertices.push(new THREE.Vector3(entry[0], entry[1], 0))
+        );
+        const line = new THREE.Line(geometry, material);
+
+        scene.add( line );
+        renderer.render( scene, camera );
+
+        let startTime = null;
+        const animate = function (time) {
+            if (!startTime) {
+                startTime = time;
+                requestAnimationFrame(animate);
+            } else {
+                let frameIndex = (time - startTime) / keyframeInterval;
+                if (frameIndex >= data.length - 1) {
+                    frameIndex = data.length - 1;
+                } else {
+                    requestAnimationFrame(animate);
+                }
+                const fIndexHigh = Math.ceil(frameIndex);
+                const fIndexLow = fIndexHigh - 1;
+                geometry.vertices.forEach((vertex, vindex) =>
+                    vertex.set(
+                        data[fIndexHigh][vindex][0] * (frameIndex - fIndexLow) + data[fIndexLow][vindex][0] * (fIndexHigh - frameIndex),
+                        data[fIndexHigh][vindex][1] * (frameIndex - fIndexLow) + data[fIndexLow][vindex][1] * (fIndexHigh - frameIndex),
+                        0
+                    )
+                );
+                geometry.verticesNeedUpdate = true;
+                renderer.render(scene, camera);
+            }
+        };
+
+        requestAnimationFrame(animate);
+    };
+
+    fetch('output.json').then(response => response.json()).then(json => {
+        const grouped = json.map(row => {
+            let output = [];
+            for (let i = 0; i < row.length; i += 2) {
+                output.push([row[i] * 150, row[i + 1] * 150]);
+            }
+            return output;
+        });
+        render(grouped, 10);
+    });
+</script>
+</body>
+</html>

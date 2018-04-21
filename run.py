@@ -1,5 +1,6 @@
 from math import pi
 import numpy as np
+import json
 
 from getFb import getFb
 from getFs import getFs
@@ -84,13 +85,6 @@ qCons = q[consInd]
 u = np.zeros(2 * nv)
 uUncons = u[unconsInd]
 
-# Time marching
-Nsteps = int(totalTime / dt)  # number of time steps
-
-ctime = 0
-
-endY = np.zeros(Nsteps)
-
 def objfun(qUncons):
     q0Uncons = q0[unconsInd]
     mUncons = m[unconsInd]
@@ -134,6 +128,14 @@ def objfun(qUncons):
             raise Exception('Cannot converge')
     return qUncons
 
+
+# Time marching
+Nsteps = int(totalTime / dt)  # number of time steps
+
+ctime = 0
+
+outputData = []
+
 for timeStep in range(Nsteps):
     print('t = %f' % ctime)
 
@@ -147,5 +149,6 @@ for timeStep in range(Nsteps):
 
     # Update x0
     q0 = q
+    outputData.append(q.tolist())
 
-    endY[timeStep] = q[-1]
+json.dump(outputData, open("output.json", "w"))

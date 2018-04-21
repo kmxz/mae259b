@@ -32,7 +32,7 @@ tol = 1e-7
 maximum_iter = 100
 
 # Total simulation time (it exits after t=totalTime)
-totalTime = 0.5
+totalTime = 5
 
 # Utility quantities
 ne = nv - 1
@@ -108,7 +108,7 @@ def objfun(qUncons):
         Fs, Js = getFs(qCurrentIterate, EA, ne, refLen)
         Fg = m * garr
 
-        Forces = (Fb + Fs + Fg)
+        Forces = Fb + Fs + Fg
         Forces = Forces[unconsInd]
 
         # Equation of motion
@@ -116,7 +116,7 @@ def objfun(qUncons):
 
         # Manipulate the Jacobians
         Jelastic = Jb + Js
-        Jelastic = Jelastic[unconsInd, unconsInd]
+        Jelastic = Jelastic[unconsInd.start:unconsInd.stop, unconsInd.start:unconsInd.stop]
         J = mMat / dt ** 2 - Jelastic
 
         # Newton's update
@@ -127,7 +127,7 @@ def objfun(qUncons):
 
         # Update iteration number
         iter += 1
-        print('Iter=%d, error=%f\n' % (iter - 1, normfNew))
+        print('Iter=%d, error=%f' % (iter - 1, normfNew))
         normf = normfNew
 
         if (iter > maximum_iter):
@@ -135,6 +135,8 @@ def objfun(qUncons):
     return qUncons
 
 for timeStep in range(Nsteps):
+    print('t = %f' % ctime)
+
     qUncons = q[unconsInd]
     qUncons = objfun(qUncons)
 

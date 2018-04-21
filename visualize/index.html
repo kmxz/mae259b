@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Console</title>
+    <link rel="stylesheet" type="text/css" href="https://stackpath.bootstrapcdn.com/bootswatch/4.1.0/cosmo/bootstrap.min.css" />
+    <style type="text/css">
+        html, body, .fullpage {
+            height: 100%;
+            overflow: hidden;
+        }
+        #welcome {
+            margin: 0 auto;
+            width: 100%;
+            max-width: 960px;
+        }
+        #canvas {
+            display: none;
+            position: relative;
+            z-index: 1;
+        }
+        #file-list {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.min.js"></script>
+</head>
+<script type="text/javascript">
+    const setTc = (el, content) => el.replaceChild(document.createTextNode(content), el.firstChild);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const display = document.getElementById('display');
+        const title = document.getElementById('title');
+        const canvas = document.getElementById('canvas');
+
+        const render = (data, keyframeInterval) => {
+            const destWidth = canvas.parentNode.clientWidth;
+            const destHeight = canvas.parentNode.clientHeight - canvas.previousElementSibling.clientHeight;
+            canvas.width = destWidth;
+            canvas.height = destHeight;
+            canvas.style.display = 'block';
+
+            const renderer = new THREE.WebGLRenderer({ canvas });
+
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera.position.set( 30, -10, 50 );
+            camera.lookAt( new THREE.Vector3( 30, -10, 0 ) );
+
+            const scene = new THREE.Scene();
+
+            // create a blue LineBasicMaterial
+            const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+            const geometry = new THREE.Geometry();
+            data[0].points.forEach(entry =>
+                geometry.vertices.push(new THREE.Vector3(entry[0], entry[1], 0))
+            );
+            const line = new THREE.Line(geometry, material);
+
+            scene.add( line );
+            renderer.render( scene, camera );
+
+            let startTime = null;
+            const animate = function (time) {
+                if (!startTime) {
+                    startTime = time;
+                    requestAnimationFrame(animate);
+                } else {
+                    let frameIndex = (time - startTime) / keyframeInterval;
+                    if (frameIndex >= data.length - 1) {
+                        frameIndex = data.length - 1;
+                    } else {
+                        requestAnimationFrame(animate);
+                    }
+                    const fIndexHigh = Math.ceil(frameIndex);
+                    const fIndexLow = fIndexHigh - 1;
+                    geometry.vertices.forEach((vertex, vindex) =>
+                        vertex.set(
+                            data[fIndexHigh].points[vindex][0] * (frameIndex - fIndexLow) + data[fIndexLow].points[vindex][0] * (fIndexHigh - frameIndex),
+                            data[fIndexHigh].points[vindex][1] * (frameIndex - fIndexLow) + data[fIndexLow].points[vindex][1] * (fIndexHigh - frameIndex),
+                            0
+                        )
+                    );
+                    const ctime = data[fIndexHigh].time * (frameIndex - fIndexLow) + data[fIndexLow].time * (fIndexHigh - frameIndex);
+                    setTc(display, 'Animating: t = ' + ctime.toFixed(3));
+                    geometry.verticesNeedUpdate = true;
+                    renderer.render(scene, camera);
+                }
+            };
+
+            requestAnimationFrame(animate);
+        };
+
+        fetch('/list').then(response => response.json()).then(json => {
+            if (json.length) {
+                let selected = null;
+                const fl = document.getElementById('file-list');
+                const btn = fl.nextElementSibling;
+                setTc(fl.previousElementSibling, 'Select a previous result to load.');
+                btn.classList.remove('disabled');
+                json.forEach(entry => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.appendChild(document.createTextNode(entry));
+                    li.addEventListener('click', () => {
+                        if (selected) { selected.classList.remove('active'); }
+                        selected = li;
+                        li.classList.add('active');
+                    });
+                    fl.appendChild(li);
+                });
+                fl.style.display = 'block';
+                btn.addEventListener('click', () => {
+                    if (!selected) {
+                        window.alert('Please select a file first!');
+                    } else {
+                        const fileName = selected.firstChild.textContent;
+                        fetch('data/' + fileName).then(response => response.json()).then(rows => {
+                            const grouped = rows.map(({ time, data }) => {
+                                let output = [];
+                                for (let i = 0; i < data.length; i += 2) {
+                                    output.push([data[i] * 250, data[i + 1] * 250]);
+                                }
+                                return { points: output, time };
+                            });
+                            setTc(title, fileName);
+                            render(grouped, 10);
+                        }).catch(err => window.alert('Error! ' + err.toString()))
+                    }
+                });
+            }
+        });
+    });
+</script>
+<body>
+    <div class="fullpage">
+        <nav class="navbar navbar-dark bg-primary">
+            <span class="navbar-brand" id="title">DER Console</span>
+            <span class="navbar-text" id="display">Stopped</span>
+        </nav>
+        <canvas id="canvas"></canvas>
+        <div class="row px-5 py-5" id="welcome">
+            <div class="col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Start computation</h5>
+                        <p class="card-text">Start a fresh computation using Newton-Raphson.</p>
+                        <button class="btn btn-primary">Start</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Load a previous result</h5>
+                        <p class="card-text">No saved result available.</p>
+                        <ul class="list-group list-group-flush mb-4" id="file-list">
+                        </ul>
+                        <button class="btn btn-primary disabled">Go</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

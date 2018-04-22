@@ -82,7 +82,8 @@ def runDER(computeThread):
 
     # Constrained dofs
     consIndStart = range(4)
-    unconsInd = range(4, len(q))
+    consIndEnd = len(q) - 1
+    unconsInd = range(4, len(q) - 1)
 
     u = np.zeros(2 * nv)
     uUncons = u[unconsInd]
@@ -97,6 +98,7 @@ def runDER(computeThread):
         while normf > tol * ScaleSolver:
             qCurrentIterate = q0
             qCurrentIterate[consIndStart] = q[consIndStart]
+            qCurrentIterate[consIndEnd] = q[consIndEnd]
             qCurrentIterate[unconsInd] = qUncons
 
             # get forces
@@ -155,6 +157,12 @@ def runDER(computeThread):
         # Update x0
         q0 = q
 
+    # also save final state
+    qList = q.tolist()
+    outputData.append({'time': ctime, 'data': qList})
+    if computeThread:
+        computeThread.put(json.dumps({'event': 'step', 'time': ctime, 'data': qList}))
+
     outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
     json.dump(outputData, open(outputFileName, "w"))
     print("Result saved to " + outputFileName)
@@ -162,5 +170,5 @@ def runDER(computeThread):
         computeThread.put(json.dumps({'event': 'finish', 'output': outputFileName}))
 
 
-if __name__ == '__m ain__':
+if __name__ == '__main__':
     runDER(None)

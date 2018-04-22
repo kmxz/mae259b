@@ -27,63 +27,132 @@
 <script type="text/javascript">
     const setTc = (el, content) => el.replaceChild(document.createTextNode(content), el.firstChild);
 
+    const Proxy = function (path) {
+        THREE.Curve.call(this);
+        this.path = path;
+    };
+    Proxy.prototype = Object.create(THREE.Curve.prototype);
+    Proxy.prototype.constructor = Proxy;
+    Proxy.prototype.getPoint = function (t) {
+        const gpt = this.path.getPoint(t);
+        return new THREE.Vector3(gpt.x, gpt.y, 0);
+    };
+
+    const setUpAnimOptions = () => {
+        const exaggerate = document.getElementById('animopt-exaggerate');
+        const speed = document.getElementById('animopt-speed');
+        const showpoints = document.getElementById('animopt-showpoints');
+        const radius = document.getElementById('animopt-radius');
+        const map = input => Math.round(Math.exp(input.value * Math.log(100)) * 1000) / 1000;
+        [exaggerate, speed].forEach(input => input.addEventListener('input', () =>
+            setTc(input.parentNode.nextElementSibling, map(input))
+        ));
+        radius.addEventListener('change', () => {
+            if (isNaN(parseFloat(radius.value))) {
+                radius.value = '5e-3';
+            }
+        });
+        return () => ({
+            exaggerateY: map(exaggerate),
+            speed: map(speed),
+            showNodes: showpoints.checked,
+            radius: parseFloat(radius.value)
+        });
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const display = document.getElementById('display');
         const title = document.getElementById('title');
         const canvas = document.getElementById('canvas');
+        const animOptions = setUpAnimOptions();
 
-        const render = (data, keyframeInterval) => {
+        const render = (data, options) => {
             const destWidth = canvas.parentNode.clientWidth;
             const destHeight = canvas.parentNode.clientHeight - canvas.previousElementSibling.clientHeight;
             canvas.width = destWidth;
             canvas.height = destHeight;
             canvas.style.display = 'block';
 
-            const renderer = new THREE.WebGLRenderer({ canvas });
+            let minX = Number.MAX_VALUE;
+            let maxX = Number.MIN_VALUE;
+            let minY = Number.MAX_VALUE;
+            let maxY = Number.MIN_VALUE;
 
-            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
-            camera.position.set( 30, -10, 50 );
-            camera.lookAt( new THREE.Vector3( 30, -10, 0 ) );
+            data[0].points.forEach(entry => {
+                if (entry.x > maxX) { maxX = entry.x; }
+                if (entry.x < minX) { minX = entry.x; }
+                if (entry.y > maxY) { maxY = entry.y; }
+                if (entry.y < minY) { minY = entry.y; }
+            });
+            const proxyPath = new Proxy(new THREE.Path(data[0].points));
+
+            const geometry = new THREE.TubeBufferGeometry(proxyPath, data[0].points.length, options.radius,  options.showNodes ? 16 : 32, false);
+
+            const material = new THREE.MeshLambertMaterial({
+                color: 0x2962FF,
+                wireframe: options.showNodes
+            });
 
             const scene = new THREE.Scene();
+            scene.add(new THREE.Mesh(geometry, material));
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            scene.add(new THREE.DirectionalLight(0xffffff, 1));
 
-            // create a blue LineBasicMaterial
-            const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
-            const geometry = new THREE.Geometry();
-            data[0].points.forEach(entry =>
-                geometry.vertices.push(new THREE.Vector3(entry[0], entry[1], 0))
-            );
-            const line = new THREE.Line(geometry, material);
+            const dotGeometry = options.showNodes ? new THREE.Geometry() : null;
+            if (options.showNodes) {
+                data[0].points.forEach(entry => {
+                    dotGeometry.vertices.push(new THREE.Vector3(entry.x, entry.y, 0));
+                });
+                const dotMaterial = new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, color: 0xffffff });
+                scene.add(new THREE.Points(dotGeometry, dotMaterial));
+            }
 
-            scene.add( line );
-            renderer.render( scene, camera );
+            const maxRange = Math.max(maxX - minX, maxY - minY);
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, maxRange / 4, 500);
+            camera.position.set((minX + maxX) / 2, (minY + maxY) / 2, maxRange * 2);
+            console.log('Camera @', (minX + maxX) / 2, (minY + maxY) / 2, maxRange * 2);
+            camera.lookAt(new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, 0));
+
+            const renderer = new THREE.WebGLRenderer({ canvas });
+            renderer.render(scene, camera);
 
             let startTime = null;
+            let fIndexHigh = 1;
             const animate = function (time) {
+                const nextFrame = requestAnimationFrame(animate);
                 if (!startTime) {
                     startTime = time;
-                    requestAnimationFrame(animate);
-                } else {
-                    let frameIndex = (time - startTime) / keyframeInterval;
-                    if (frameIndex >= data.length - 1) {
-                        frameIndex = data.length - 1;
-                    } else {
-                        requestAnimationFrame(animate);
-                    }
-                    const fIndexHigh = Math.ceil(frameIndex);
-                    const fIndexLow = fIndexHigh - 1;
-                    geometry.vertices.forEach((vertex, vindex) =>
-                        vertex.set(
-                            data[fIndexHigh].points[vindex][0] * (frameIndex - fIndexLow) + data[fIndexLow].points[vindex][0] * (fIndexHigh - frameIndex),
-                            data[fIndexHigh].points[vindex][1] * (frameIndex - fIndexLow) + data[fIndexLow].points[vindex][1] * (fIndexHigh - frameIndex),
-                            0
-                        )
-                    );
-                    const ctime = data[fIndexHigh].time * (frameIndex - fIndexLow) + data[fIndexLow].time * (fIndexHigh - frameIndex);
-                    setTc(display, 'Animating: t = ' + ctime.toFixed(3));
-                    geometry.verticesNeedUpdate = true;
-                    renderer.render(scene, camera);
+                    return;
                 }
+                let secondsElapsed = (time - startTime) / 1000 * options.speed;
+                while (data[fIndexHigh].time < secondsElapsed) {
+                    if (fIndexHigh === data.length - 1) {
+                        // final state reached
+                        secondsElapsed = data[fIndexHigh].time;
+                        cancelAnimationFrame(nextFrame);
+                        break;
+                    }
+                    fIndexHigh++;
+                }
+                const fIndexLow = fIndexHigh - 1;
+                const frameIndex = (secondsElapsed - data[fIndexLow].time) / (data[fIndexHigh].time - data[fIndexLow].time) + fIndexLow;
+                const nodes = data[fIndexHigh].points.map((fhp, vindex) => {
+                    return new THREE.Vector2(
+                        fhp.x * (frameIndex - fIndexLow) + data[fIndexLow].points[vindex].x * (fIndexHigh - frameIndex),
+                        fhp.y * (frameIndex - fIndexLow) + data[fIndexLow].points[vindex].y * (fIndexHigh - frameIndex)
+                    );
+                });
+                proxyPath.path = new THREE.Path(nodes);
+                if (options.showNodes) {
+                    nodes.forEach((node, vindex) => {
+                        dotGeometry.vertices[vindex].set(node.x, node.y, 0);
+                    });
+                    dotGeometry.verticesNeedUpdate = true;
+                }
+                geometry.copy(new THREE.TubeBufferGeometry(proxyPath, data[0].points.length, options.radius, options.showNodes ? 16 : 32, false));
+                geometry.needUpdate = true;
+                setTc(display, 'Animating: t = ' + secondsElapsed.toFixed(3));
+                renderer.render(scene, camera);
             };
 
             requestAnimationFrame(animate);
@@ -112,18 +181,19 @@
                     if (!selected) {
                         window.alert('Please select a file first!');
                     } else {
+                        const options = animOptions();
                         const fileName = selected.firstChild.textContent;
                         fetch('data/' + fileName).then(response => response.json()).then(rows => {
                             const grouped = rows.map(({ time, data }) => {
                                 let output = [];
                                 for (let i = 0; i < data.length; i += 2) {
-                                    output.push([data[i] * 250, data[i + 1] * 250]);
+                                    output.push(new THREE.Vector2(data[i], data[i + 1] * options.exaggerateY));
                                 }
                                 return { points: output, time };
                             });
                             setTc(title, fileName);
-                            render(grouped, 10);
-                        }).catch(err => window.alert('Error! ' + err.toString()))
+                            render(grouped, options);
+                        });
                     }
                 });
             }
@@ -133,12 +203,12 @@
 <body>
     <div class="fullpage">
         <nav class="navbar navbar-dark bg-primary">
-            <span class="navbar-brand" id="title">DER Console</span>
+            <span class="navbar-brand" id="title">MAE 259B / Group 2: DER</span>
             <span class="navbar-text" id="display">Stopped</span>
         </nav>
         <canvas id="canvas"></canvas>
         <div class="row px-5 py-5" id="welcome">
-            <div class="col-sm-6">
+            <div class="col-6">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Start computation</h5>
@@ -147,7 +217,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6">
+            <div class="col-6">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Load a previous result</h5>
@@ -155,6 +225,41 @@
                         <ul class="list-group list-group-flush mb-4" id="file-list">
                         </ul>
                         <button class="btn btn-primary disabled">Go</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 mt-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Animation Options</h5>
+                        <form>
+                            <div class="form-group row">
+                                <label for="animopt-exaggerate" class="col-2 col-form-label">Exaggerate Y</label>
+                                <div class="col-8">
+                                    <input type="range" class="form-control" id="animopt-exaggerate" min="0" max="1" step="0.001" value="0" />
+                                </div>
+                                <div class="col-2">1</div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="animopt-speed" class="col-2 col-form-label">Playback speed</label>
+                                <div class="col-8">
+                                    <input type="range" class="form-control" id="animopt-speed" min="-0.5" max="0.5" step="0.001" value="0" />
+                                </div>
+                                <div class="col-2">1</div>
+                            </div>
+                            <div class="form-group row align-items-center">
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="animopt-showpoints">
+                                        <label class="form-check-label" for="animopt-showpoints">Show nodes</label>
+                                    </div>
+                                </div>
+                                <label for="animopt-radius" class="col-2 col-form-label">Rod radius</label>
+                                <div class="col-4">
+                                    <input type="text" class="form-control" id="animopt-radius" value="5e-3" />
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

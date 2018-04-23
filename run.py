@@ -81,7 +81,8 @@ def runDER(computeThread):
 
     # Constrained dofs
     consIndStart = range(4)
-    unconsInd = range(4, len(q0))
+    consIndEnd = len(q0) - 1
+    unconsInd = range(4, len(q0) - 1)
 
     u = np.zeros(2 * nv)
     uUncons = u[unconsInd]
@@ -96,6 +97,7 @@ def runDER(computeThread):
         while normf > tol * ScaleSolver:
             qCurrentIterate = q0.copy()
             qCurrentIterate[consIndStart] = q0[consIndStart]
+            qCurrentIterate[consIndEnd] = q0[consIndEnd]
             qCurrentIterate[unconsInd] = qUncons
 
             # get forces
@@ -146,17 +148,11 @@ def runDER(computeThread):
         qUncons = q0[unconsInd]
         qUncons = objfun(qUncons)
 
-        q = q0.copy()
-        q[unconsInd] = qUncons
-        u = (q - q0) / dt
-        print("q0", q0)
-        print("q", q)
-        print("u", u)
         ctime = ctime + dt
-        uUncons = u[unconsInd]
+        uUncons = (qUncons - q0[unconsInd]) / dt
 
         # Update x0
-        q0 = q
+        q0[unconsInd] = qUncons
 
     # also save final state
     output = {'time': ctime, 'data': q0.tolist()}

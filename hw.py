@@ -1,6 +1,6 @@
 import json
 
-result = json.load(open('data/hw_a.json'))
+result = json.load(open('data/mid_a.json'))
 
 ymax = 0.0
 

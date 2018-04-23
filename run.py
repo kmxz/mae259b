@@ -15,10 +15,10 @@ def runDER(computeThread):
     dt = 1e-2
 
     # rod Length
-    RodLength = 0.30
+    RodLength = 0.20
 
     # Density
-    rho = 2000.0
+    rho = 1000.0
 
     # Cross-sectional radius of rod
     r0 = 5e-3
@@ -78,11 +78,10 @@ def runDER(computeThread):
     for c in range(nv):
         q0[2 * c] = nodes[c, 0]  # initial x-coord
         q0[2 * c + 1] = nodes[c, 1]  # initial y-coord
-    q = q0
 
     # Constrained dofs
     consIndStart = range(4)
-    unconsInd = range(4, len(q))
+    unconsInd = range(4, len(q0))
 
     u = np.zeros(2 * nv)
     uUncons = u[unconsInd]
@@ -95,8 +94,8 @@ def runDER(computeThread):
         iter = 0
         normf = tol * ScaleSolver * 10
         while normf > tol * ScaleSolver:
-            qCurrentIterate = q0
-            qCurrentIterate[consIndStart] = q[consIndStart]
+            qCurrentIterate = q0.copy()
+            qCurrentIterate[consIndStart] = q0[consIndStart]
             qCurrentIterate[unconsInd] = qUncons
 
             # get forces
@@ -139,16 +138,20 @@ def runDER(computeThread):
 
     for timeStep in range(Nsteps):
         print('t = %f' % ctime)
-        output = {'time': ctime, 'data': q.tolist()}
+        output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
         if computeThread:
             computeThread.put(output)
 
-        qUncons = q[unconsInd]
+        qUncons = q0[unconsInd]
         qUncons = objfun(qUncons)
 
+        q = q0.copy()
         q[unconsInd] = qUncons
         u = (q - q0) / dt
+        print("q0", q0)
+        print("q", q)
+        print("u", u)
         ctime = ctime + dt
         uUncons = u[unconsInd]
 
@@ -156,7 +159,7 @@ def runDER(computeThread):
         q0 = q
 
     # also save final state
-    output = {'time': ctime, 'data': q.tolist()}
+    output = {'time': ctime, 'data': q0.tolist()}
     outputData.append(output)
     if computeThread:
         computeThread.put(output)

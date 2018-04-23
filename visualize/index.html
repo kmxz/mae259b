@@ -158,6 +158,16 @@
             requestAnimationFrame(animate);
         };
 
+        document.getElementById('start').addEventListener('click', () => {
+            const evtSource = new EventSource('/task');
+            evtSource.onmessage = e => {
+                console.log('R', e.data);
+            };
+            evtSource.onerror = () => {
+                evtSource.close();
+            };
+        });
+
         fetch('/list').then(response => response.json()).then(json => {
             if (json.length) {
                 let selected = null;
@@ -213,7 +223,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Start computation</h5>
                         <p class="card-text">Start a fresh computation using Newton-Raphson.</p>
-                        <button class="btn btn-primary">Start</button>
+                        <button class="btn btn-primary disabled" id="start">Please run manually</button>
                     </div>
                 </div>
             </div>

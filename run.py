@@ -15,10 +15,10 @@ def runDER(computeThread):
     dt = 1e-2
 
     # rod Length
-    RodLength = 0.05
+    RodLength = 0.30
 
     # Density
-    rho = 1000.0
+    rho = 2000.0
 
     # Cross-sectional radius of rod
     r0 = 5e-3
@@ -82,8 +82,7 @@ def runDER(computeThread):
 
     # Constrained dofs
     consIndStart = range(4)
-    consIndEnd = len(q) - 1
-    unconsInd = range(4, len(q) - 1)
+    unconsInd = range(4, len(q))
 
     u = np.zeros(2 * nv)
     uUncons = u[unconsInd]
@@ -98,7 +97,6 @@ def runDER(computeThread):
         while normf > tol * ScaleSolver:
             qCurrentIterate = q0
             qCurrentIterate[consIndStart] = q[consIndStart]
-            qCurrentIterate[consIndEnd] = q[consIndEnd]
             qCurrentIterate[unconsInd] = qUncons
 
             # get forces
@@ -141,10 +139,10 @@ def runDER(computeThread):
 
     for timeStep in range(Nsteps):
         print('t = %f' % ctime)
-        qList = q.tolist()
-        outputData.append({ 'time': ctime, 'data': qList })
+        output = {'time': ctime, 'data': q.tolist()}
+        outputData.append(output)
         if computeThread:
-            computeThread.put(json.dumps({'event': 'step', 'time': ctime, 'data': qList}))
+            computeThread.put(output)
 
         qUncons = q[unconsInd]
         qUncons = objfun(qUncons)
@@ -158,16 +156,16 @@ def runDER(computeThread):
         q0 = q
 
     # also save final state
-    qList = q.tolist()
-    outputData.append({'time': ctime, 'data': qList})
+    output = {'time': ctime, 'data': q.tolist()}
+    outputData.append(output)
     if computeThread:
-        computeThread.put(json.dumps({'event': 'step', 'time': ctime, 'data': qList}))
+        computeThread.put(output)
 
     outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
     json.dump(outputData, open(outputFileName, "w"))
     print("Result saved to " + outputFileName)
     if computeThread:
-        computeThread.put(json.dumps({'event': 'finish', 'output': outputFileName}))
+        computeThread.end(outputFileName)
 
 
 if __name__ == '__main__':

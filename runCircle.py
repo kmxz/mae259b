@@ -42,7 +42,6 @@ def runDER():
     totalTime = 50
 
     # Utility quantities
-    ne = nv - 1
     EI = Y * pi * r0 ** 4 / 4
     EA = Y * pi * r0 ** 2
     dm = pi * r0 ** 2 * CircumferenceLength * rho / ne  # mass per node
@@ -65,11 +64,16 @@ def runDER():
     # gravity
     garr = np.tile(g, nv)
 
-    # Reference length
-    refLen = np.empty(ne)
-    for c in range(ne):
+    # Reference length and Voronoi length
+    refLen = np.empty(nv)
+    for c in range(nv - 1):
         dx = nodes[c + 1] - nodes[c]
         refLen[c] = np.linalg.norm(dx)
+    refLen[nv - 1] = np.linalg.norm(nodes[0] - nodes[nv - 1])
+
+    voronoiRefLen = np.empty(nv)
+    for c in range(nv):
+        voronoiRefLen[c] = 0.5 * (refLen[c - 1] + refLen[c])
 
     # Initial
     q0 = np.zeros(2 * nv)
@@ -97,8 +101,8 @@ def runDER():
             qCurrentIterate[unconsInd] = qUncons
 
             # get forces
-            Fb, Jb = getFb(qCurrentIterate, EI, ne, refLen, -2 * pi / ne, isCircular=True)
-            Fs, Js = getFs(qCurrentIterate, EA, ne, refLen, isCircular=True)
+            Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, -2 * pi / nv, isCircular=True)
+            Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
             Fg = m * garr
 
             Forces = Fb + Fs + Fg

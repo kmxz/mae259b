@@ -26,23 +26,36 @@ def hessEs(xk, yk, xkp1, ykp1, l_k):
 
 
 # the last paramter incicates whether it is a circular shape (i.e. the two ends are connected)
-def getFs(q, EA, ne, refLen, isCircular=False):
-    Fs = np.zeros(len(q))
-    Js = np.zeros((len(q), len(q)))
-    for c in range(ne):
-        ci = 2 * c
-        cf = 2 * c + 4
-
+def getFs(q, EA, nv, refLen, isCircular=False):
+    def loop(ci, l_k):
         xkm1 = q[ci]
         ykm1 = q[ci + 1]
         xk = q[ci + 2]
         yk = q[ci + 3]
-        l_k = refLen[c]
+        return (
+            0.5 * EA * gradEs(xkm1, ykm1, xk, yk, l_k) * l_k,
+            0.5 * EA * hessEs(xkm1, ykm1, xk, yk, l_k) * l_k
+        )
 
-        gradEnergy = gradEs(xkm1, ykm1, xk, yk, l_k)
-        Fs[ci:cf] = Fs[ci:cf] - 0.5 * EA * gradEnergy * refLen[c]
+    Fs = np.zeros(len(q))
+    Js = np.zeros((len(q), len(q)))
+    for c in range(nv - 1):
+        ci = 2 * c
+        cf = 2 * c + 4
 
-        hessEnergy = hessEs(xkm1, ykm1, xk, yk, l_k)
-        Js[ci:cf, ci:cf] = Js[ci:cf, ci:cf] - 0.5 * EA * hessEnergy * refLen[c]
-    # TODO: connect the ends when isCircular is True
+        gradEnergy, hessEnergy = loop(ci, refLen[c])
+
+        Fs[ci:cf] -= gradEnergy
+
+        Js[ci:cf, ci:cf] -= hessEnergy
+    if isCircular:  # additional edge which connects two ends together
+        gradEnergy, hessEnergy = loop(-2, refLen[nv - 1])
+
+        Fs[-2:] -= gradEnergy[0:2]
+        Fs[0:2] -= gradEnergy[2:4]
+
+        Js[-2:, -2:] -= hessEnergy[0:2, 0:2]
+        Js[-2:, 0:2] -= hessEnergy[0:2, 2:4]
+        Js[0:2, -2:] -= hessEnergy[2:4, 0:2]
+        Js[0:2, 0:2] -= hessEnergy[2:4, 2:4]
     return Fs, Js

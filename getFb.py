@@ -39,13 +39,8 @@ def hessEb(xkm1, ykm1, xk, yk, xkp1, ykp1, φk0):
 
 
 # the last paramter incicates whether it is a circular shape (i.e. the two ends are connected)
-def getFb(q, EI, ne, refLen, φk0, isCircular=False):
-    Fb = np.zeros(len(q))
-    Jb = np.zeros((len(q), len(q)))
-    for c in range(1, ne):
-        ci = 2 * c - 2
-        cf = 2 * c + 4
-
+def getFb(q, EI, nv, voronoiRefLen, φk0, isCircular=False):
+    def loop(ci, l_k):
         xkm1 = q[ci]
         ykm1 = q[ci + 1]
         xk = q[ci + 2]
@@ -53,10 +48,39 @@ def getFb(q, EI, ne, refLen, φk0, isCircular=False):
         xkp1 = q[ci + 4]
         ykp1 = q[ci + 5]
 
-        gradEnergy = gradEb(xkm1, ykm1, xk, yk, xkp1, ykp1, φk0)
-        Fb[ci:cf] = Fb[ci:cf] - 0.5 * EI * gradEnergy / refLen[c]
+        return (
+            0.5 * EI * gradEb(xkm1, ykm1, xk, yk, xkp1, ykp1, φk0) / l_k,
+            0.5 * EI * hessEb(xkm1, ykm1, xk, yk, xkp1, ykp1, φk0) / l_k
+        )
+    Fb = np.zeros(len(q))
+    Jb = np.zeros((len(q), len(q)))
+    for c in range(1, nv - 1):
+        ci = 2 * c - 2
+        cf = 2 * c + 4
 
-        hessEnergy = hessEb(xkm1, ykm1, xk, yk, xkp1, ykp1, φk0)
-        Jb[ci:cf, ci:cf] = Jb[ci: cf, ci: cf] - 0.5 * EI * hessEnergy / refLen[c]
-    # TODO: connect the ends when isCircular is True
+        gradEnergy, hessEnergy = loop(ci, voronoiRefLen[c])
+
+        Fb[ci:cf] -= gradEnergy
+
+        Jb[ci:cf, ci:cf] -= hessEnergy
+    if isCircular:  # additional node at start (i.e. c = 0)
+        gradEnergy, hessEnergy = loop(-2, voronoiRefLen[0])
+
+        Fb[-2:] -= gradEnergy[0:2]
+        Fb[0:4] -= gradEnergy[2:6]
+
+        Jb[-2:, -2:] -= hessEnergy[0:2, 0:2]
+        Jb[-2:, 0:4] -= hessEnergy[0:2, 2:6]
+        Jb[0:4, -2:] -= hessEnergy[2:6, 0:2]
+        Jb[0:4, 0:4] -= hessEnergy[2:6, 2:6]
+    if isCircular:  # additional node at end (i.e. c = nv - 1)
+        gradEnergy, hessEnergy = loop(-4, voronoiRefLen[nv - 1])
+
+        Fb[-4:] -= gradEnergy[0:4]
+        Fb[0:2] -= gradEnergy[4:6]
+
+        Jb[-4:, -4:] -= hessEnergy[0:4, 0:4]
+        Jb[-4:, 0:2] -= hessEnergy[0:4, 4:6]
+        Jb[0:2, -4:] -= hessEnergy[4:6, 0:4]
+        Jb[0:2, 0:2] -= hessEnergy[4:6, 4:6]
     return Fb, Jb

@@ -27,7 +27,7 @@ def runDER():
     Y = 1e6
 
     # gravity
-    g = [0.0, -0.0981]
+    g = [0.0, -9.81]
 
     # Tolerance on force function. This is multiplied by ScaleSolver so that we do not have to update it based on edge length and time step size
     tol = 1e-7
@@ -61,17 +61,11 @@ def runDER():
     # gravity
     garr = np.tile(g, nv)
 
-    # Reference length and Voronoi length
+    # Reference length
     refLen = np.empty(ne)
     for c in range(ne):
         dx = nodes[c + 1] - nodes[c]
         refLen[c] = np.linalg.norm(dx)
-
-    voronoiRefLen = np.empty(nv)
-    voronoiRefLen[0] = 0.5 * refLen[0]
-    for c in range(1, nv - 1):
-        voronoiRefLen[c] = 0.5 * (refLen[c - 1] + refLen[c])
-    voronoiRefLen[nv - 1] = 0.5 * refLen[nv - 2]
 
     # Initial
     q0 = np.zeros(2 * nv)

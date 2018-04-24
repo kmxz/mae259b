@@ -27,7 +27,7 @@ def runDER():
     Y = 1e6
 
     # gravity
-    g = [0.0, -9.81]
+    g = [0.0, -0.0981]
 
     # Tolerance on force function. This is multiplied by ScaleSolver so that we do not have to update it based on edge length and time step size
     tol = 1e-7
@@ -81,8 +81,7 @@ def runDER():
 
     # Constrained dofs
     consIndStart = range(4)
-    consIndEnd = len(q0) - 1
-    unconsInd = range(4, len(q0) - 1)
+    unconsInd = range(4, len(q0))
 
     u = np.zeros(2 * nv)
     uUncons = u[unconsInd]
@@ -97,11 +96,10 @@ def runDER():
         while normf > tol * ScaleSolver:
             qCurrentIterate = q0.copy()
             qCurrentIterate[consIndStart] = q0[consIndStart]
-            qCurrentIterate[consIndEnd] = q0[consIndEnd]
             qCurrentIterate[unconsInd] = qUncons
 
             # get forces
-            Fb, Jb = getFb(qCurrentIterate, EI, ne, refLen)
+            Fb, Jb = getFb(qCurrentIterate, EI, ne, refLen, 0.01745)
             Fs, Js = getFs(qCurrentIterate, EA, ne, refLen)
             Fg = m * garr
 

@@ -7,7 +7,7 @@ from getFb import getFb
 from getFs import getFs
 
 
-def runDER(computeThread):
+def runDER():
     # number of vertices
     nv = 20
 
@@ -142,8 +142,6 @@ def runDER(computeThread):
         print('t = %f' % ctime)
         output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
-        if computeThread:
-            computeThread.put(output)
 
         qUncons = q0[unconsInd]
         qUncons = objfun(qUncons)
@@ -157,15 +155,11 @@ def runDER(computeThread):
     # also save final state
     output = {'time': ctime, 'data': q0.tolist()}
     outputData.append(output)
-    if computeThread:
-        computeThread.put(output)
 
     outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
     json.dump(outputData, open(outputFileName, "w"))
     print("Result saved to " + outputFileName)
-    if computeThread:
-        computeThread.end(outputFileName)
 
 
 if __name__ == '__main__':
-    runDER(None)
+    runDER()

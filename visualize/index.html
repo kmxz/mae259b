@@ -78,12 +78,12 @@
             let minY = Number.MAX_VALUE;
             let maxY = Number.MIN_VALUE;
 
-            data[0].points.forEach(entry => {
+            data.forEach(row => row.points.forEach(entry => {
                 if (entry.x > maxX) { maxX = entry.x; }
                 if (entry.x < minX) { minX = entry.x; }
                 if (entry.y > maxY) { maxY = entry.y; }
                 if (entry.y < minY) { minY = entry.y; }
-            });
+            }));
             const proxyPath = new Proxy(new THREE.Path(data[0].points));
 
             const geometry = new THREE.TubeBufferGeometry(proxyPath, data[0].points.length, options.radius,  options.showNodes ? 16 : 32, false);
@@ -107,10 +107,10 @@
                 scene.add(new THREE.Points(dotGeometry, dotMaterial));
             }
 
-            const maxRange = Math.max(maxX - minX, maxY - minY);
-            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, maxRange / 4, 500);
-            camera.position.set((minX + maxX) / 2, (minY + maxY) / 2, maxRange * 2);
-            console.log('Camera @', (minX + maxX) / 2, (minY + maxY) / 2, maxRange * 2);
+            const cameraZ4Y = (maxY - minY + 4 * options.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
+            const cameraZ4X = ((maxX - minX + 4 * options.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, Math.max(cameraZ4X, cameraZ4Y) / 4, 500);
+            camera.position.set((minX + maxX) / 2, (minY + maxY) / 2, Math.max(cameraZ4X, cameraZ4Y));
             camera.lookAt(new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, 0));
 
             const renderer = new THREE.WebGLRenderer({ canvas });
@@ -157,16 +157,6 @@
 
             requestAnimationFrame(animate);
         };
-
-        document.getElementById('start').addEventListener('click', () => {
-            const evtSource = new EventSource('/task');
-            evtSource.onmessage = e => {
-                console.log('R', e.data);
-            };
-            evtSource.onerror = () => {
-                evtSource.close();
-            };
-        });
 
         fetch('/list').then(response => response.json()).then(json => {
             if (json.length) {
@@ -217,17 +207,41 @@
             <span class="navbar-text" id="display">Stopped</span>
         </nav>
         <canvas id="canvas"></canvas>
-        <div class="row px-5 py-5" id="welcome">
-            <div class="col-6">
+        <div class="row px-5" id="welcome">
+            <div class="col-sm-6 my-5">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Start computation</h5>
-                        <p class="card-text">Start a fresh computation using Newton-Raphson.</p>
-                        <button class="btn btn-primary disabled" id="start">Feature not completed. Please run manually in console</button>
+                        <h5 class="card-title">Animation Options</h5>
+                        <form>
+                            <div class="form-group row">
+                                <label for="animopt-exaggerate" class="col-4 col-form-label">Exaggerate Y</label>
+                                <div class="col-6">
+                                    <input type="range" class="form-control" id="animopt-exaggerate" min="0" max="1" step="0.001" value="0" />
+                                </div>
+                                <div class="col-2">1</div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="animopt-speed" class="col-4 col-form-label">Playback speed</label>
+                                <div class="col-6">
+                                    <input type="range" class="form-control" id="animopt-speed" min="-0.5" max="0.5" step="0.001" value="0" />
+                                </div>
+                                <div class="col-2">1</div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="animopt-radius" class="col-4 col-form-label">Rod radius</label>
+                                <div class="col-8">
+                                    <input type="text" class="form-control" id="animopt-radius" value="5e-3" />
+                                </div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="animopt-showpoints">
+                                <label class="form-check-label" for="animopt-showpoints">Show nodes</label>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
-            <div class="col-6">
+            <div class="col-sm-6 my-5">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Load a previous result</h5>
@@ -235,41 +249,6 @@
                         <ul class="list-group list-group-flush mb-4" id="file-list">
                         </ul>
                         <button class="btn btn-primary disabled">Go</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-12 mt-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Animation Options</h5>
-                        <form>
-                            <div class="form-group row">
-                                <label for="animopt-exaggerate" class="col-2 col-form-label">Exaggerate Y</label>
-                                <div class="col-8">
-                                    <input type="range" class="form-control" id="animopt-exaggerate" min="0" max="1" step="0.001" value="0" />
-                                </div>
-                                <div class="col-2">1</div>
-                            </div>
-                            <div class="form-group row">
-                                <label for="animopt-speed" class="col-2 col-form-label">Playback speed</label>
-                                <div class="col-8">
-                                    <input type="range" class="form-control" id="animopt-speed" min="-0.5" max="0.5" step="0.001" value="0" />
-                                </div>
-                                <div class="col-2">1</div>
-                            </div>
-                            <div class="form-group row align-items-center">
-                                <div class="col-6">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="animopt-showpoints">
-                                        <label class="form-check-label" for="animopt-showpoints">Show nodes</label>
-                                    </div>
-                                </div>
-                                <label for="animopt-radius" class="col-2 col-form-label">Rod radius</label>
-                                <div class="col-4">
-                                    <input type="text" class="form-control" id="animopt-radius" value="5e-3" />
-                                </div>
-                            </div>
-                        </form>
                     </div>
                 </div>
             </div>

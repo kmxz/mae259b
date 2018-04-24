@@ -39,7 +39,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 100
+    totalTime = 50
 
     # Utility quantities
     ne = nv - 1
@@ -50,8 +50,8 @@ def runDER():
     nodes = np.empty((nv, 2))
 
     for c in range(nv):
-        nodes[c, 0] = CircleRadius * cos(c * 2 * pi / nv)
-        nodes[c, 1] = CircleRadius * sin(c * 2 * pi / nv)
+        nodes[c, 0] = CircleRadius * cos(c * 2 * pi / nv - pi / 2)
+        nodes[c, 1] = CircleRadius * sin(c * 2 * pi / nv - pi / 2)
 
     ScaleSolver = dm * np.linalg.norm(g)  # i don't know why. maybe just take it as granted
 
@@ -97,8 +97,8 @@ def runDER():
             qCurrentIterate[unconsInd] = qUncons
 
             # get forces
-            Fb, Jb = getFb(qCurrentIterate, EI, ne, refLen, -2 * pi / ne)
-            Fs, Js = getFs(qCurrentIterate, EA, ne, refLen)
+            Fb, Jb = getFb(qCurrentIterate, EI, ne, refLen, -2 * pi / ne, isCircular=True)
+            Fs, Js = getFs(qCurrentIterate, EA, ne, refLen, isCircular=True)
             Fg = m * garr
 
             Forces = Fb + Fs + Fg

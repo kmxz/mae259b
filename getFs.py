@@ -25,7 +25,8 @@ def hessEs(xk, yk, xkp1, ykp1, l_k):
     return np.array([J11, J12, J13, J14, J12, J22, J23, J24, J13, J23, J33, J34, J14, J24, J34, J44]).reshape((4, 4))
 
 
-def getFs(q, EA, ne, refLen):
+# the last paramter incicates whether it is a circular shape (i.e. the two ends are connected)
+def getFs(q, EA, ne, refLen, isCircular=False):
     Fs = np.zeros(len(q))
     Js = np.zeros((len(q), len(q)))
     for c in range(ne):
@@ -43,4 +44,5 @@ def getFs(q, EA, ne, refLen):
 
         hessEnergy = hessEs(xkm1, ykm1, xk, yk, l_k)
         Js[ci:cf, ci:cf] = Js[ci:cf, ci:cf] - 0.5 * EA * hessEnergy * refLen[c]
+    # TODO: connect the ends when isCircular is True
     return Fs, Js

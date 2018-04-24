@@ -38,7 +38,8 @@ def hessEb(xkm1, ykm1, xk, yk, xkp1, ykp1, φk0):
     return np.array([J11, J12, J13, J14, J15, J16, J12, J22, J23, J24, J25, J26, J13, J23, J33, J34, J35, J36, J14, J24, J34, J44, J45, J46, J15, J25, J35, J45, J55, J56, J16, J26, J36, J46, J56, J66]).reshape((6, 6))
 
 
-def getFb(q, EI, ne, refLen, φk0):
+# the last paramter incicates whether it is a circular shape (i.e. the two ends are connected)
+def getFb(q, EI, ne, refLen, φk0, isCircular=False):
     Fb = np.zeros(len(q))
     Jb = np.zeros((len(q), len(q)))
     for c in range(1, ne):
@@ -57,4 +58,5 @@ def getFb(q, EI, ne, refLen, φk0):
 
         hessEnergy = hessEb(xkm1, ykm1, xk, yk, xkp1, ykp1, φk0)
         Jb[ci:cf, ci:cf] = Jb[ci: cf, ci: cf] - 0.5 * EI * hessEnergy / refLen[c]
+    # TODO: connect the ends when isCircular is True
     return Fb, Jb

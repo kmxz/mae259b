@@ -1,4 +1,5 @@
 import datetime
+import inspect
 from math import pi, sin, cos
 import numpy as np
 import json
@@ -9,7 +10,7 @@ from getFs import getFs
 
 def runDER():
     # number of vertices
-    nv = 6
+    nv = 16
 
     # time step
     dt = 1e-2
@@ -39,7 +40,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 2.5
+    totalTime = 0.5
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
@@ -152,10 +153,13 @@ def runDER():
     output = {'time': ctime, 'data': q0.tolist()}
     outputData.append(output)
 
-    outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
-    json.dump({'meta': {'radius': r0, 'closed': True}, 'frames': outputData}, open(outputFileName, "w"), separators=(',', ': '))
-    print("Result saved to " + outputFileName)
+    return {'meta': {'radius': r0, 'closed': True}, 'frames': outputData}
 
 
 if __name__ == '__main__':
-    runDER()
+    code = inspect.getsource(runDER)
+    result = runDER()
+    result['code'] = code
+    outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
+    json.dump(result, open(outputFileName, "w"), separators = (',', ': '))
+    print("Result saved to " + outputFileName)

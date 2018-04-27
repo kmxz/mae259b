@@ -1,4 +1,5 @@
 import datetime
+import inspect
 from math import pi
 import numpy as np
 import json
@@ -154,10 +155,13 @@ def runDER():
     output = {'time': ctime, 'data': q0.tolist()}
     outputData.append(output)
 
-    outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
-    json.dump({'meta': {'radius': r0, 'closed': False}, 'frames': outputData}, open(outputFileName, "w"), separators=(',', ': '))
-    print("Result saved to " + outputFileName)
+    return {'meta': {'radius': r0, 'closed': False}, 'frames': outputData}
 
 
 if __name__ == '__main__':
-    runDER()
+    code = inspect.getsource(runDER)
+    result = runDER()
+    result['code'] = code
+    outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
+    json.dump(result, open(outputFileName, "w"), separators = (',', ': '))
+    print("Result saved to " + outputFileName)

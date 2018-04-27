@@ -6,7 +6,7 @@
     <style type="text/css">
         html, body, .fullpage {
             height: 100%;
-            overflow: hidden;
+            overflow: auto;
         }
         #welcome {
             margin: 0 auto;
@@ -18,7 +18,7 @@
             position: relative;
             z-index: 1;
         }
-        #file-list {
+        #file-list, #code-preview-row {
             display: none;
         }
     </style>
@@ -28,32 +28,36 @@
     const setTc = (el, content) => el.replaceChild(document.createTextNode(content), el.firstChild);
 
     const setUpAnimOptions = () => {
-        const exaggerate = document.getElementById('animopt-exaggerate');
-        const speed = document.getElementById('animopt-speed');
-        const showpoints = document.getElementById('animopt-showpoints');
+        const el$exaggerate = document.getElementById('animopt-exaggerate');
+        const el$speed = document.getElementById('animopt-speed');
+        const el$showpoints = document.getElementById('animopt-showpoints');
         const map = input => Math.round(Math.exp(input.value * Math.log(100)) * 1000) / 1000;
-        [exaggerate, speed].forEach(input => input.addEventListener('input', () =>
+        [el$exaggerate, el$speed].forEach(input => input.addEventListener('input', () =>
             setTc(input.parentNode.nextElementSibling, map(input))
         ));
         return () => ({
-            exaggerateY: map(exaggerate),
-            speed: map(speed),
-            showNodes: showpoints.checked
+            exaggerateY: map(el$exaggerate),
+            speed: map(el$speed),
+            showNodes: el$showpoints.checked
         });
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-        const display = document.getElementById('display');
-        const title = document.getElementById('title');
-        const canvas = document.getElementById('canvas');
+        const el$welcome = document.getElementById('welcome');
+        const el$display = document.getElementById('display');
+        const el$title = document.getElementById('title');
+        const el$canvas = document.getElementById('canvas');
+        const el$codePreviewRow = document.getElementById('code-preview-row');
+        const el$codePreview = document.getElementById('code-preview');
+        const el$fileName = document.getElementById('file-name');
         const animOptions = setUpAnimOptions();
 
         const render = ({ meta, frames }, options) => {
-            const destWidth = canvas.parentNode.clientWidth;
-            const destHeight = canvas.parentNode.clientHeight - canvas.previousElementSibling.clientHeight;
-            canvas.width = destWidth;
-            canvas.height = destHeight;
-            canvas.style.display = 'block';
+            const destWidth = el$canvas.parentNode.clientWidth;
+            const destHeight = el$canvas.parentNode.clientHeight - el$canvas.previousElementSibling.clientHeight;
+            el$canvas.width = destWidth;
+            el$canvas.height = destHeight;
+            el$canvas.style.display = 'block';
 
             let minX = Number.MAX_VALUE;
             let maxX = Number.MIN_VALUE;
@@ -96,7 +100,7 @@
             camera.position.set((minX + maxX) / 2, (minY + maxY) / 2, Math.max(cameraZ4X, cameraZ4Y));
             camera.lookAt(new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, 0));
 
-            const renderer = new THREE.WebGLRenderer({ canvas });
+            const renderer = new THREE.WebGLRenderer({ canvas: el$canvas });
             renderer.render(scene, camera);
 
             let startTime = null;
@@ -134,12 +138,14 @@
                 }
                 geometry.copy(new THREE.TubeBufferGeometry(new THREE.CatmullRomCurve3(nodes, meta.closed), sections, meta.radius, options.showNodes ? 16 : 32, meta.closed));
                 geometry.needUpdate = true;
-                setTc(display, 'Animating: t = ' + secondsElapsed.toFixed(3));
+                setTc(el$display, 'Animating: t = ' + secondsElapsed.toFixed(3));
                 renderer.render(scene, camera);
             };
 
             requestAnimationFrame(animate);
         };
+
+        let jsonData = null;
 
         fetch('/list').then(response => response.json()).then(dirs => {
             const keys = Object.keys(dirs).sort();
@@ -160,11 +166,19 @@
                         const li = document.createElement('li');
                         li.className = 'list-group-item pl-5 py-2';
                         li.appendChild(document.createTextNode(entry));
-                        li.dataset.path = dir + '/' + entry;
                         li.addEventListener('click', () => {
                             if (selected) { selected.classList.remove('active'); }
                             selected = li;
                             li.classList.add('active');
+                            el$codePreviewRow.style.display = 'none';
+                            jsonData = fetch('data/' + dir + '/' + entry + '?at=' + Date.now()).then(response => response.json());
+                            jsonData.then(data => {
+                                if (data.code) {
+                                    setTc(el$fileName, entry);
+                                    setTc(el$codePreview, data.code);
+                                    el$codePreviewRow.style.display = 'block';
+                                }
+                            });
                         });
                         fl.appendChild(li);
                     });
@@ -175,18 +189,17 @@
                         window.alert('Please select a file first!');
                     } else {
                         const options = animOptions();
-                        const fileName = selected.dataset.path;
-                        fetch('data/' + fileName + '?at=' + Date.now()).then(response => response.json()).then(data => {
+                        jsonData.then(data => {
                             data.frames.forEach(frame => {
                                 let output = [];
                                 for (let i = 0; i < frame.data.length; i += 2) {
                                     output.push(new THREE.Vector3(frame.data[i], frame.data[i + 1] * options.exaggerateY, 0));
                                 }
-                                // output.push(new THREE.Vector3(frame.data[0], frame.data[1] * options.exaggerateY, 0));
                                 frame.points = output;
                                 delete frame.data;
                             });
-                            setTc(title, fileName);
+                            setTc(el$title, selected.firstChild.textContent);
+                            el$welcome.style.display = 'none';
                             render(data, options);
                         });
                     }
@@ -202,42 +215,56 @@
             <span class="navbar-text" id="display">Stopped</span>
         </nav>
         <canvas id="canvas"></canvas>
-        <div class="row px-5" id="welcome">
-            <div class="col-sm-6 my-5">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Animation Options</h5>
-                        <form>
-                            <div class="form-group row">
-                                <label for="animopt-exaggerate" class="col-4 col-form-label">Exaggerate Y</label>
-                                <div class="col-6">
-                                    <input type="range" class="form-control" id="animopt-exaggerate" min="0" max="1" step="0.001" value="0" />
+        <div id="welcome">
+            <div class="row px-5">
+                <div class="col-sm-6 mt-5">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Animation Options</h5>
+                            <form>
+                                <div class="form-group row">
+                                    <label for="animopt-exaggerate" class="col-4 col-form-label">Exaggerate Y</label>
+                                    <div class="col-6">
+                                        <input type="range" class="form-control" id="animopt-exaggerate" min="0" max="1" step="0.001" value="0" />
+                                    </div>
+                                    <div class="col-2">1</div>
                                 </div>
-                                <div class="col-2">1</div>
-                            </div>
-                            <div class="form-group row">
-                                <label for="animopt-speed" class="col-4 col-form-label">Playback speed</label>
-                                <div class="col-6">
-                                    <input type="range" class="form-control" id="animopt-speed" min="-0.5" max="0.5" step="0.001" value="0" />
+                                <div class="form-group row">
+                                    <label for="animopt-speed" class="col-4 col-form-label">Playback speed</label>
+                                    <div class="col-6">
+                                        <input type="range" class="form-control" id="animopt-speed" min="-0.5" max="0.5" step="0.001" value="0" />
+                                    </div>
+                                    <div class="col-2">1</div>
                                 </div>
-                                <div class="col-2">1</div>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="animopt-showpoints">
-                                <label class="form-check-label" for="animopt-showpoints">Show nodes</label>
-                            </div>
-                        </form>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="animopt-showpoints">
+                                    <label class="form-check-label" for="animopt-showpoints">Show nodes</label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 mt-5">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Load a previous result</h5>
+                            <p class="card-text">No saved result available.</p>
+                            <ul class="list-group list-group-flush mb-4" id="file-list">
+                            </ul>
+                            <button class="btn btn-primary disabled">Go</button>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 my-5">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Load a previous result</h5>
-                        <p class="card-text">No saved result available.</p>
-                        <ul class="list-group list-group-flush mb-4" id="file-list">
-                        </ul>
-                        <button class="btn btn-primary disabled">Go</button>
+            <div class="row px-5" id="code-preview-row">
+                <div class="col-12 mt-5">
+                    <div class="card">
+                        <div class="card-header">
+                            Code snapshot for generating <span id="file-name">data file</span>
+                        </div>
+                        <div class="card-body">
+                            <pre id="code-preview">N/A</pre>
+                        </div>
                     </div>
                 </div>
             </div>

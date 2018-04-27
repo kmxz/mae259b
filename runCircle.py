@@ -9,10 +9,10 @@ from getFs import getFs
 
 def runDER():
     # number of vertices
-    nv = 20
+    nv = 6
 
     # time step
-    dt = 2e-2
+    dt = 1e-2
 
     # circle radius
     CircleRadius = 0.10
@@ -39,18 +39,18 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 50
+    totalTime = 2.5
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
     EA = Y * pi * r0 ** 2
-    dm = pi * r0 ** 2 * CircumferenceLength * rho / ne  # mass per node
+    dm = pi * r0 ** 2 * CircumferenceLength * rho / nv  # mass per node
 
     nodes = np.empty((nv, 2))
 
     for c in range(nv):
-        nodes[c, 0] = CircleRadius * cos(c * 2 * pi / nv - pi / 2)
-        nodes[c, 1] = CircleRadius * sin(c * 2 * pi / nv - pi / 2)
+        nodes[c, 0] = CircleRadius * cos(c * 2 * pi / nv + pi / 2)
+        nodes[c, 1] = CircleRadius * sin(c * 2 * pi / nv + pi / 2)
 
     ScaleSolver = dm * np.linalg.norm(g)  # i don't know why. maybe just take it as granted
 
@@ -157,7 +157,7 @@ def runDER():
     outputData.append(output)
 
     outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
-    json.dump(outputData, open(outputFileName, "w"))
+    json.dump({'meta': {'radius': r0, 'closed': True}, 'frames': outputData}, open(outputFileName, "w"), separators=(',', ': '))
     print("Result saved to " + outputFileName)
 
 

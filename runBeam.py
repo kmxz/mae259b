@@ -9,7 +9,7 @@ from getFs import getFs
 
 def runDER():
     # number of vertices
-    nv = 20
+    nv = 6
 
     # time step
     dt = 1e-2
@@ -36,7 +36,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 5
+    totalTime = 2.5
 
     # Utility quantities
     ne = nv - 1
@@ -155,7 +155,7 @@ def runDER():
     outputData.append(output)
 
     outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
-    json.dump(outputData, open(outputFileName, "w"))
+    json.dump({'meta': {'radius': r0, 'closed': False}, 'frames': outputData}, open(outputFileName, "w"), separators=(',', ': '))
     print("Result saved to " + outputFileName)
 
 

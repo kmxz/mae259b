@@ -27,36 +27,18 @@
 <script type="text/javascript">
     const setTc = (el, content) => el.replaceChild(document.createTextNode(content), el.firstChild);
 
-    const Proxy = function (path) {
-        THREE.Curve.call(this);
-        this.path = path;
-    };
-    Proxy.prototype = Object.create(THREE.Curve.prototype);
-    Proxy.prototype.constructor = Proxy;
-    Proxy.prototype.getPoint = function (t) {
-        const gpt = this.path.getPoint(t);
-        return new THREE.Vector3(gpt.x, gpt.y, 0);
-    };
-
     const setUpAnimOptions = () => {
         const exaggerate = document.getElementById('animopt-exaggerate');
         const speed = document.getElementById('animopt-speed');
         const showpoints = document.getElementById('animopt-showpoints');
-        const radius = document.getElementById('animopt-radius');
         const map = input => Math.round(Math.exp(input.value * Math.log(100)) * 1000) / 1000;
         [exaggerate, speed].forEach(input => input.addEventListener('input', () =>
             setTc(input.parentNode.nextElementSibling, map(input))
         ));
-        radius.addEventListener('change', () => {
-            if (isNaN(parseFloat(radius.value))) {
-                radius.value = '5e-3';
-            }
-        });
         return () => ({
             exaggerateY: map(exaggerate),
             speed: map(speed),
-            showNodes: showpoints.checked,
-            radius: parseFloat(radius.value)
+            showNodes: showpoints.checked
         });
     };
 
@@ -66,7 +48,7 @@
         const canvas = document.getElementById('canvas');
         const animOptions = setUpAnimOptions();
 
-        const render = (data, options) => {
+        const render = ({ meta, frames }, options) => {
             const destWidth = canvas.parentNode.clientWidth;
             const destHeight = canvas.parentNode.clientHeight - canvas.previousElementSibling.clientHeight;
             canvas.width = destWidth;
@@ -78,15 +60,16 @@
             let minY = Number.MAX_VALUE;
             let maxY = Number.MIN_VALUE;
 
-            data.forEach(row => row.points.forEach(entry => {
+            frames.forEach(row => row.points.forEach(entry => {
                 if (entry.x > maxX) { maxX = entry.x; }
                 if (entry.x < minX) { minX = entry.x; }
                 if (entry.y > maxY) { maxY = entry.y; }
                 if (entry.y < minY) { minY = entry.y; }
             }));
-            const proxyPath = new Proxy(new THREE.Path(data[0].points));
+            const path = new THREE.CatmullRomCurve3(frames[0].points, meta.closed);
+            const sections = frames[0].points.length - (meta.closed ? 0 : 1);
 
-            const geometry = new THREE.TubeBufferGeometry(proxyPath, data[0].points.length, options.radius,  options.showNodes ? 16 : 32, false);
+            const geometry = new THREE.TubeBufferGeometry(path, sections, meta.radius, options.showNodes ? 16 : 32, meta.closed);
 
             const material = new THREE.MeshLambertMaterial({
                 color: 0x2962FF,
@@ -100,15 +83,15 @@
 
             const dotGeometry = options.showNodes ? new THREE.Geometry() : null;
             if (options.showNodes) {
-                data[0].points.forEach(entry => {
-                    dotGeometry.vertices.push(new THREE.Vector3(entry.x, entry.y, 0));
-                });
+                frames[0].points.forEach(entry =>
+                    dotGeometry.vertices.push(new THREE.Vector3(entry.x, entry.y, 0))
+                );
                 const dotMaterial = new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, color: 0xffffff });
                 scene.add(new THREE.Points(dotGeometry, dotMaterial));
             }
 
-            const cameraZ4Y = (maxY - minY + 4 * options.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
-            const cameraZ4X = ((maxX - minX + 4 * options.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
+            const cameraZ4Y = (maxY - minY + 4 * meta.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
+            const cameraZ4X = ((maxX - minX + 4 * meta.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
             const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, Math.max(cameraZ4X, cameraZ4Y) / 4, 500);
             camera.position.set((minX + maxX) / 2, (minY + maxY) / 2, Math.max(cameraZ4X, cameraZ4Y));
             camera.lookAt(new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, 0));
@@ -125,31 +108,31 @@
                     return;
                 }
                 let secondsElapsed = (time - startTime) / 1000 * options.speed;
-                while (data[fIndexHigh].time < secondsElapsed) {
-                    if (fIndexHigh === data.length - 1) {
+                while (frames[fIndexHigh].time < secondsElapsed) {
+                    if (fIndexHigh === frames.length - 1) {
                         // final state reached
-                        secondsElapsed = data[fIndexHigh].time;
+                        secondsElapsed = frames[fIndexHigh].time;
                         cancelAnimationFrame(nextFrame);
                         break;
                     }
                     fIndexHigh++;
                 }
                 const fIndexLow = fIndexHigh - 1;
-                const frameIndex = (secondsElapsed - data[fIndexLow].time) / (data[fIndexHigh].time - data[fIndexLow].time) + fIndexLow;
-                const nodes = data[fIndexHigh].points.map((fhp, vindex) => {
-                    return new THREE.Vector2(
-                        fhp.x * (frameIndex - fIndexLow) + data[fIndexLow].points[vindex].x * (fIndexHigh - frameIndex),
-                        fhp.y * (frameIndex - fIndexLow) + data[fIndexLow].points[vindex].y * (fIndexHigh - frameIndex)
+                const frameIndex = (secondsElapsed - frames[fIndexLow].time) / (frames[fIndexHigh].time - frames[fIndexLow].time) + fIndexLow;
+                const nodes = frames[fIndexHigh].points.map((fhp, vindex) => {
+                    return new THREE.Vector3(
+                        fhp.x * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].x * (fIndexHigh - frameIndex),
+                        fhp.y * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].y * (fIndexHigh - frameIndex),
+                        fhp.z * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].z * (fIndexHigh - frameIndex)
                     );
                 });
-                proxyPath.path = new THREE.Path(nodes);
                 if (options.showNodes) {
                     nodes.forEach((node, vindex) => {
-                        dotGeometry.vertices[vindex].set(node.x, node.y, 0);
+                        dotGeometry.vertices[vindex].set(node.x, node.y, node.z);
                     });
                     dotGeometry.verticesNeedUpdate = true;
                 }
-                geometry.copy(new THREE.TubeBufferGeometry(proxyPath, data[0].points.length, options.radius, options.showNodes ? 16 : 32, false));
+                geometry.copy(new THREE.TubeBufferGeometry(new THREE.CatmullRomCurve3(nodes, meta.closed), sections, meta.radius, options.showNodes ? 16 : 32, meta.closed));
                 geometry.needUpdate = true;
                 setTc(display, 'Animating: t = ' + secondsElapsed.toFixed(3));
                 renderer.render(scene, camera);
@@ -183,16 +166,18 @@
                     } else {
                         const options = animOptions();
                         const fileName = selected.firstChild.textContent;
-                        fetch('data/' + fileName).then(response => response.json()).then(rows => {
-                            const grouped = rows.map(({ time, data }) => {
+                        fetch('data/' + fileName + '?at=' + Date.now()).then(response => response.json()).then(data => {
+                            data.frames.forEach(frame => {
                                 let output = [];
-                                for (let i = 0; i < data.length; i += 2) {
-                                    output.push(new THREE.Vector2(data[i], data[i + 1] * options.exaggerateY));
+                                for (let i = 0; i < frame.data.length; i += 2) {
+                                    output.push(new THREE.Vector3(frame.data[i], frame.data[i + 1] * options.exaggerateY, 0));
                                 }
-                                return { points: output, time };
+                                // output.push(new THREE.Vector3(frame.data[0], frame.data[1] * options.exaggerateY, 0));
+                                frame.points = output;
+                                delete frame.data;
                             });
                             setTc(title, fileName);
-                            render(grouped, options);
+                            render(data, options);
                         });
                     }
                 });
@@ -226,12 +211,6 @@
                                     <input type="range" class="form-control" id="animopt-speed" min="-0.5" max="0.5" step="0.001" value="0" />
                                 </div>
                                 <div class="col-2">1</div>
-                            </div>
-                            <div class="form-group row">
-                                <label for="animopt-radius" class="col-4 col-form-label">Rod radius</label>
-                                <div class="col-8">
-                                    <input type="text" class="form-control" id="animopt-radius" value="5e-3" />
-                                </div>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="animopt-showpoints">

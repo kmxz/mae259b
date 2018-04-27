@@ -141,23 +141,33 @@
             requestAnimationFrame(animate);
         };
 
-        fetch('/list').then(response => response.json()).then(json => {
-            if (json.length) {
+        fetch('/list').then(response => response.json()).then(dirs => {
+            const keys = Object.keys(dirs).sort();
+            if (keys.length) {
                 let selected = null;
                 const fl = document.getElementById('file-list');
                 const btn = fl.nextElementSibling;
                 setTc(fl.previousElementSibling, 'Select a previous result to load.');
                 btn.classList.remove('disabled');
-                json.forEach(entry => {
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item';
-                    li.appendChild(document.createTextNode(entry));
-                    li.addEventListener('click', () => {
-                        if (selected) { selected.classList.remove('active'); }
-                        selected = li;
-                        li.classList.add('active');
+                keys.forEach(dir => {
+                    if (dir) {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item text-muted py-2';
+                        li.appendChild(document.createTextNode(dir));
+                        fl.appendChild(li);
+                    }
+                    dirs[dir].sort().forEach(entry => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item pl-5 py-2';
+                        li.appendChild(document.createTextNode(entry));
+                        li.dataset.path = dir + '/' + entry;
+                        li.addEventListener('click', () => {
+                            if (selected) { selected.classList.remove('active'); }
+                            selected = li;
+                            li.classList.add('active');
+                        });
+                        fl.appendChild(li);
                     });
-                    fl.appendChild(li);
                 });
                 fl.style.display = 'block';
                 btn.addEventListener('click', () => {
@@ -165,7 +175,7 @@
                         window.alert('Please select a file first!');
                     } else {
                         const options = animOptions();
-                        const fileName = selected.firstChild.textContent;
+                        const fileName = selected.dataset.path;
                         fetch('data/' + fileName + '?at=' + Date.now()).then(response => response.json()).then(data => {
                             data.frames.forEach(frame => {
                                 let output = [];

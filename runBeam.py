@@ -1,9 +1,7 @@
-import datetime
-import inspect
 from math import pi
 import numpy as np
-import json
 
+from cliUtils import cliRun
 from getFb import getFb
 from getFs import getFs
 
@@ -159,9 +157,4 @@ def runDER():
 
 
 if __name__ == '__main__':
-    code = inspect.getsource(runDER)
-    result = runDER()
-    result['code'] = code
-    outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
-    json.dump(result, open(outputFileName, "w"), separators = (',', ': '))
-    print("Result saved to " + outputFileName)
+    cliRun(runDER)

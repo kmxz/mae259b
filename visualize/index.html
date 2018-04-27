@@ -156,13 +156,14 @@
                 setTc(fl.previousElementSibling, 'Select a previous result to load.');
                 btn.classList.remove('disabled');
                 keys.forEach(dir => {
+                    let parent;
                     if (dir) {
-                        const li = document.createElement('li');
-                        li.className = 'list-group-item text-muted py-2';
-                        li.appendChild(document.createTextNode(dir));
-                        fl.appendChild(li);
+                        parent = document.createElement('li');
+                        parent.className = 'list-group-item py-2';
+                        parent.appendChild(document.createTextNode(dir));
+                        fl.appendChild(parent);
                     }
-                    dirs[dir].sort().forEach(entry => {
+                    const lis = dirs[dir].sort().map(entry => {
                         const li = document.createElement('li');
                         li.className = 'list-group-item pl-5 py-2';
                         li.appendChild(document.createTextNode(entry));
@@ -180,8 +181,17 @@
                                 }
                             });
                         });
+                        li.style.display = 'none';
                         fl.appendChild(li);
+                        return li;
                     });
+                    if (parent) {
+                        parent.addEventListener('click', () => {
+                            const now = parent.classList.contains('text-muted');
+                            lis.forEach(now ? (li => li.style.display = 'none') : (li => li.style.display = 'block'));
+                            parent.classList[now ? 'remove' : 'add']('text-muted');
+                        });
+                    }
                 });
                 fl.style.display = 'block';
                 btn.addEventListener('click', () => {

@@ -1,22 +1,20 @@
-import datetime
-import inspect
 from math import pi, sin, cos
 import numpy as np
-import json
 
+from cliUtils import cliRun
 from getFb import getFb
 from getFs import getFs
 
 
 def runDER():
     # number of vertices
-    nv = 16
+    nv = 32
 
     # time step
     dt = 1e-2
 
     # circle radius
-    CircleRadius = 0.10
+    CircleRadius = 0.20
 
     # circumference length
     CircumferenceLength = 2 * pi * CircleRadius
@@ -28,10 +26,10 @@ def runDER():
     r0 = 5e-3
 
     # Young's modulus
-    Y = 1e6
+    Y = 1e8
 
     # gravity
-    g = [0.0, -0.0981]
+    g = [0.0, -9.81]
 
     # Tolerance on force function. This is multiplied by ScaleSolver so that we do not have to update it based on edge length and time step size
     tol = 1e-7
@@ -40,7 +38,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 0.5
+    totalTime = 2.5
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
@@ -157,9 +155,4 @@ def runDER():
 
 
 if __name__ == '__main__':
-    code = inspect.getsource(runDER)
-    result = runDER()
-    result['code'] = code
-    outputFileName = datetime.datetime.now().strftime('data/output-%m_%d-%H_%M_%S.json')
-    json.dump(result, open(outputFileName, "w"), separators = (',', ': '))
-    print("Result saved to " + outputFileName)
+    cliRun(runDER)

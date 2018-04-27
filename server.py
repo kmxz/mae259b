@@ -2,6 +2,7 @@ import asyncio
 import os
 import json
 
+import shutil
 from aiohttp import web
 from aiohttp.web import Response
 
@@ -18,11 +19,21 @@ async def list(request):
     out = {k: v for (k, v) in rec if len(v)}
     return Response(text=json.dumps(out), content_type='application/json')
 
+async def file_upload(request):
+    data = await request.post()
+    id = data['id']
+    time = data['time']
+    file = data['image'].file
+    out = open('screenshots/%s-%s.png' % (id, time), 'wb')
+    shutil.copyfileobj(file, out)
+    out.close()
+    return Response(text='OK', content_type='text/plain')
 
 app = web.Application()
 app.router.add_route('GET', '/', index)
 app.router.add_static('/data', 'data')
 app.router.add_route('GET', '/list', list)
+app.router.add_route('POST', '/save', file_upload)
 
 loop = asyncio.get_event_loop()
 

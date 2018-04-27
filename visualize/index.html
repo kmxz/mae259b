@@ -31,14 +31,27 @@
         const el$exaggerate = document.getElementById('animopt-exaggerate');
         const el$speed = document.getElementById('animopt-speed');
         const el$showpoints = document.getElementById('animopt-showpoints');
+        const el$screenshotIndicator = document.getElementById('animopt-screenshot-indicator');
+        const el$screenshot = document.getElementById('animopt-screenshot-interval');
         const map = input => Math.round(Math.exp(input.value * Math.log(100)) * 1000) / 1000;
         [el$exaggerate, el$speed].forEach(input => input.addEventListener('input', () =>
             setTc(input.parentNode.nextElementSibling, map(input))
         ));
+        el$screenshot.addEventListener('input', () => {
+            const val = parseFloat(el$screenshot.value);
+            if (isNaN(val) || (val <= 0)) {
+                setTc(el$screenshotIndicator, 'off');
+                el$screenshotIndicator.className = 'badge badge-light';
+            } else {
+                setTc(el$screenshotIndicator, 'on');
+                el$screenshotIndicator.className = 'badge badge-primary';
+            }
+        });
         return () => ({
             exaggerateY: map(el$exaggerate),
             speed: map(el$speed),
-            showNodes: el$showpoints.checked
+            showNodes: el$showpoints.checked,
+            screenshotEvery: Math.max(parseFloat(el$screenshot.value) || 0, 0)
         });
     };
 
@@ -51,6 +64,20 @@
         const el$codePreview = document.getElementById('code-preview');
         const el$fileName = document.getElementById('file-name');
         const animOptions = setUpAnimOptions();
+
+        let currentId = null;
+        const saveScreenshot = time => new Promise((res, rej) =>
+            el$canvas.toBlob(blob => {
+                const fd = new FormData();
+                fd.append('id', currentId);
+                fd.append('time', time.toFixed(3));
+                fd.append('image', blob);
+                fetch('/save', {
+                    method: 'POST',
+                    body: fd
+                }).then(response => response.text()).then(res).catch(rej);
+            })
+        );
 
         const render = ({ meta, frames }, options) => {
             const destWidth = el$canvas.parentNode.clientWidth;
@@ -105,18 +132,13 @@
 
             let startTime = null;
             let fIndexHigh = 1;
-            const animate = function (time) {
-                const nextFrame = requestAnimationFrame(animate);
-                if (!startTime) {
-                    startTime = time;
-                    return;
-                }
-                let secondsElapsed = (time - startTime) / 1000 * options.speed;
+            const doAnimation = secondsElapsed => {
+                let shouldRequestNextFrame = true;
                 while (frames[fIndexHigh].time < secondsElapsed) {
                     if (fIndexHigh === frames.length - 1) {
                         // final state reached
                         secondsElapsed = frames[fIndexHigh].time;
-                        cancelAnimationFrame(nextFrame);
+                        shouldRequestNextFrame = false;
                         break;
                     }
                     fIndexHigh++;
@@ -140,9 +162,33 @@
                 geometry.needUpdate = true;
                 setTc(el$display, 'Animating: t = ' + secondsElapsed.toFixed(3));
                 renderer.render(scene, camera);
+                return shouldRequestNextFrame;
             };
-
-            requestAnimationFrame(animate);
+            const animate = function (time) {
+                if (!startTime) {
+                    startTime = time;
+                    requestAnimationFrame(animate);
+                    return;
+                }
+                let secondsElapsed = (time - startTime) / 1000 * options.speed;
+                if (doAnimation(secondsElapsed)) {
+                    requestAnimationFrame(animate);
+                }
+            };
+            if (options.screenshotEvery) { // screenshot mode
+                let currentTime = 0;
+                const step = () => {
+                    saveScreenshot(currentTime).then(() => {
+                        currentTime += options.screenshotEvery;
+                        if (doAnimation(currentTime)) {
+                            step();
+                        }
+                    });
+                };
+                step();
+            } else { // animate mode
+                requestAnimationFrame(animate);
+            }
         };
 
         let jsonData = null;
@@ -198,7 +244,15 @@
                     if (!selected) {
                         window.alert('Please select a file first!');
                     } else {
+                        const title = selected.firstChild.textContent;
                         const options = animOptions();
+                        if (options.screenshotEvery) {
+                            currentId = title.substr(0, title.length - 4).replace(/[^A-Za-z0-9_]/g, '').substr(0, 4);
+                            while (currentId.length < 5) {
+                                currentId += String.fromCharCode(Math.random() * 26 + 97);
+                            }
+                            window.alert('Screenshot will be save with a prefix of ' + currentId);
+                        }
                         jsonData.then(data => {
                             data.frames.forEach(frame => {
                                 let output = [];
@@ -208,7 +262,7 @@
                                 frame.points = output;
                                 delete frame.data;
                             });
-                            setTc(el$title, selected.firstChild.textContent);
+                            setTc(el$title, title);
                             el$welcome.style.display = 'none';
                             render(data, options);
                         });
@@ -227,8 +281,8 @@
         <canvas id="canvas"></canvas>
         <div id="welcome" class="mb-5">
             <div class="row px-5">
-                <div class="col-sm-6 mt-5">
-                    <div class="card">
+                <div class="col-sm-6">
+                    <div class="card mt-4">
                         <div class="card-body">
                             <h5 class="card-title">Animation Options</h5>
                             <form>
@@ -253,9 +307,22 @@
                             </form>
                         </div>
                     </div>
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Screenshot mode <span class="badge badge-pill badge-light" id="animopt-screenshot-indicator">off</span></h5>
+                            <p>Screenshot mode is disabled by default. Enter a non-zero number below to turn it on.</p>
+                            <div class="form-group row">
+                                <label for="animopt-screenshot-interval" class="col-6 col-form-label">Take screenshot every</label>
+                                <div class="col-5">
+                                    <input type="number" class="form-control" id="animopt-screenshot-interval" value="0" />
+                                </div>
+                                <label for="animopt-screenshot-interval" class="col-1 col-form-label">s</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-sm-6 mt-5">
-                    <div class="card">
+                <div class="col-sm-6">
+                    <div class="card mt-4">
                         <div class="card-body">
                             <h5 class="card-title">Load a previous result</h5>
                             <p class="card-text">No saved result available.</p>

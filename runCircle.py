@@ -100,7 +100,7 @@ def runDER():
             Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, -2 * pi / nv, isCircular=True)
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
             Fg = m * garr
-            Fp, Jp = getFp(qCurrentIterate, nv, refLen, 0.0)
+            Fp, Jp = getFp(qCurrentIterate, nv, refLen, 25.0)
 
             Forces = Fb + Fs + Fg + Fp
             Forces = Forces[unconsInd]

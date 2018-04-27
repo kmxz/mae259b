@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import json
+from timeit import default_timer as timer
 
 
 def cliRun(method):
@@ -13,7 +14,11 @@ def cliRun(method):
     fp = open('data/' + outputFileName, "w")
 
     code = inspect.getsource(method)
+    start_timer = timer()
     result = method()
+    time_elapsed = timer() - start_timer
+    print("Computation used %f seconds, speed ratio %f" % (time_elapsed, time_elapsed / result['frames'][-1]['time']))
+
     result['code'] = code
     json.dump(result, fp, separators = (',', ': '))
 

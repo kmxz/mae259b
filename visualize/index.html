@@ -117,7 +117,7 @@
                 frames[0].points.forEach(entry =>
                     dotGeometry.vertices.push(new THREE.Vector3(entry.x, entry.y, 0))
                 );
-                const dotMaterial = new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, color: 0xffffff });
+                const dotMaterial = new THREE.PointsMaterial({ size: 4, sizeAttenuation: false, color: 0xffffff });
                 scene.add(new THREE.Points(dotGeometry, dotMaterial));
             }
 

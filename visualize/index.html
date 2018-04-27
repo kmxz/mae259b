@@ -147,7 +147,7 @@
 
         let jsonData = null;
 
-        fetch('/list').then(response => response.json()).then(dirs => {
+        fetch('/list?at=' + Date.now()).then(response => response.json()).then(dirs => {
             const keys = Object.keys(dirs).sort();
             if (keys.length) {
                 let selected = null;
@@ -172,7 +172,7 @@
                             selected = li;
                             li.classList.add('active');
                             el$codePreviewRow.style.display = 'none';
-                            jsonData = fetch('data/' + dir + '/' + entry + '?at=' + Date.now()).then(response => response.json());
+                            jsonData = fetch('data' + dir + '/' + entry + '?at=' + Date.now()).then(response => response.json());
                             jsonData.then(data => {
                                 if (data.code) {
                                     setTc(el$fileName, entry);
@@ -181,11 +181,11 @@
                                 }
                             });
                         });
-                        li.style.display = 'none';
                         fl.appendChild(li);
                         return li;
                     });
                     if (parent) {
+                        lis.forEach(li => li.style.display = 'none');
                         parent.addEventListener('click', () => {
                             const now = parent.classList.contains('text-muted');
                             lis.forEach(now ? (li => li.style.display = 'none') : (li => li.style.display = 'block'));
@@ -225,7 +225,7 @@
             <span class="navbar-text" id="display">Stopped</span>
         </nav>
         <canvas id="canvas"></canvas>
-        <div id="welcome">
+        <div id="welcome" class="mb-5">
             <div class="row px-5">
                 <div class="col-sm-6 mt-5">
                     <div class="card">

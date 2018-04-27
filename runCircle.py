@@ -3,6 +3,7 @@ import numpy as np
 
 from cliUtils import cliRun
 from getFb import getFb
+from getFp import getFp
 from getFs import getFs
 
 
@@ -26,7 +27,7 @@ def runDER():
     r0 = 5e-3
 
     # Young's modulus
-    Y = 1e8
+    Y = 5e6
 
     # gravity
     g = [0.0, -9.81]
@@ -99,8 +100,9 @@ def runDER():
             Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, -2 * pi / nv, isCircular=True)
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
             Fg = m * garr
+            Fp, Jp = getFp(qCurrentIterate, nv, refLen, 0.0)
 
-            Forces = Fb + Fs + Fg
+            Forces = Fb + Fs + Fg + Fp
             Forces = Forces[unconsInd]
 
             # Equation of motion
@@ -109,7 +111,8 @@ def runDER():
             # Manipulate the Jacobians
             Jelastic = Jb + Js
             Jelastic = Jelastic[unconsInd.start:unconsInd.stop, unconsInd.start:unconsInd.stop]
-            J = mMat / dt ** 2 - Jelastic
+            Jp = Jp[unconsInd.start:unconsInd.stop, unconsInd.start:unconsInd.stop]
+            J = mMat / dt ** 2 - Jelastic - Jp
 
             # Newton's update
             qUncons = qUncons - np.linalg.solve(J, f)

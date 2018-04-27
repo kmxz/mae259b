@@ -1,7 +1,6 @@
 # Get Fi and Jij for bending modes, with initial curvature φₖₒ
 # Print the code that can be directly pasted into getFb.py
 
-from math import tan, atan
 from sympy import symbols, diff, tan, atan
 
 

@@ -56,10 +56,6 @@ def runDER():
 
     # mass
     m = np.full(2 * nv, dm)
-    m[0] /= 2
-    m[1] /= 2
-    m[2 * nv - 2] /= 2
-    m[2 * nv - 1] /= 2
 
     # gravity
     garr = np.tile(g, nv)

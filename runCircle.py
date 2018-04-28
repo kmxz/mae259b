@@ -89,19 +89,19 @@ def runDER():
     dofHelper.constraint([1])
 
     u = np.zeros(2 * nv)
-    uUncons = dofHelper.unconstrained_v(u)
 
-    def objfun(qUncons):
+    def objfun():
         q0Uncons = dofHelper.unconstrained_v(q0)
         mUncons = dofHelper.unconstrained_v(m)
+        uUncons = dofHelper.unconstrained_v(u)
         mMat = np.diag(mUncons)
+
+        qCurrentIterate = q0.copy()
+        qUncons = dofHelper.unconstrained_v(q0)
         # Newton-Raphson scheme
         iter = 0
         normf = tol * ScaleSolver * 10
         while normf > tol * ScaleSolver:
-            qCurrentIterate = q0.copy()
-            dofHelper.write_unconstrained_back(qCurrentIterate, qUncons)
-
             # get forces
             Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, -2 * pi / nv, isCircular=True)
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
@@ -122,6 +122,7 @@ def runDER():
 
             # Newton's update
             qUncons = qUncons - np.linalg.solve(J, f)
+            dofHelper.write_unconstrained_back(qCurrentIterate, qUncons)
 
             # Get the norm
             normfNew = np.linalg.norm(f)
@@ -133,7 +134,7 @@ def runDER():
 
             if (iter > maximum_iter):
                 raise Exception('Cannot converge')
-        return qUncons
+        return qCurrentIterate
 
     # Time marching
     Nsteps = int(totalTime / dt)  # number of time steps
@@ -147,14 +148,13 @@ def runDER():
         output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
 
-        qUncons = dofHelper.unconstrained_v(q0)
-        qUncons = objfun(qUncons)
+        qNew = objfun()
 
-        ctime = ctime + dt
-        uUncons = (qUncons - dofHelper.unconstrained_v(q0)) / dt
+        ctime += dt
+        u = (qNew - q0) / dt
 
         # Update x0
-        dofHelper.write_unconstrained_back(q0, qUncons)
+        q0 = qNew
 
     # also save final state
     output = {'time': ctime, 'data': q0.tolist()}

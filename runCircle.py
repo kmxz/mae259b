@@ -16,10 +16,10 @@ def runDER():
     dt = 1e-2
 
     # initial center of circle
-    x0 = [0.0, 0.30]
+    x0 = [0.0, 0.50]
 
     # inflation pressure (N/m)
-    InflationPressure = 4.0
+    InflationPressure = 10.0
 
     # circle radius
     CircleRadius = 0.20
@@ -86,22 +86,19 @@ def runDER():
 
     # Constrained dofs
     dofHelper = DofHelper(len(q0))
-    dofHelper.constraint([1])
+    # dofHelper.constraint([1])
 
     u = np.zeros(2 * nv)
 
-    def objfun():
-        q0Uncons = dofHelper.unconstrained_v(q0)
+    def objfun(q0WithAdditionalConstraintsApplied):
         mUncons = dofHelper.unconstrained_v(m)
-        uUncons = dofHelper.unconstrained_v(u)
         mMat = np.diag(mUncons)
 
-        qCurrentIterate = q0.copy()
-        qUncons = dofHelper.unconstrained_v(q0)
+        qCurrentIterate = q0WithAdditionalConstraintsApplied.copy()
+        qUncons = dofHelper.unconstrained_v(qCurrentIterate)
         # Newton-Raphson scheme
         iter = 0
-        normf = tol * ScaleSolver * 10
-        while normf > tol * ScaleSolver:
+        while True:
             # get forces
             Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, -2 * pi / nv, isCircular=True)
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
@@ -109,10 +106,10 @@ def runDER():
             Fp, Jp = getFp(qCurrentIterate, nv, refLen, InflationPressure)
 
             Forces = Fb + Fs + Fg + Fp
-            Forces = dofHelper.unconstrained_v(Forces)
 
             # Equation of motion
-            f = mUncons * (qUncons - q0Uncons) / dt ** 2 - mUncons * uUncons / dt - Forces
+            f = m * (qCurrentIterate - q0) / dt ** 2 - m * u / dt - Forces
+            fUncons = dofHelper.unconstrained_v(f)
 
             # Manipulate the Jacobians
             Jelastic = Jb + Js
@@ -121,20 +118,21 @@ def runDER():
             J = mMat / dt ** 2 - Jelastic - Jp
 
             # Newton's update
-            qUncons = qUncons - np.linalg.solve(J, f)
+            qUncons = qUncons - np.linalg.solve(J, fUncons)
             dofHelper.write_unconstrained_back(qCurrentIterate, qUncons)
 
             # Get the norm
-            normfNew = np.linalg.norm(f)
+            normfNew = np.linalg.norm(fUncons)
 
             # Update iteration number
             iter += 1
             print('Iter=%d, error=%f' % (iter - 1, normfNew))
-            normf = normfNew
 
-            if (iter > maximum_iter):
+            if normfNew < tol * ScaleSolver:
+                break
+            if iter > maximum_iter:
                 raise Exception('Cannot converge')
-        return qCurrentIterate
+        return qCurrentIterate, f
 
     # Time marching
     Nsteps = int(totalTime / dt)  # number of time steps
@@ -148,7 +146,30 @@ def runDER():
         output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
 
-        qNew = objfun()
+        qNew, reactionForces = objfun(q0)
+
+        # inspect reactionForces to see if any one is negative, which should be UNCONSTRAINED
+        needToFree = [unconsInd for unconsInd in dofHelper._constrained if (reactionForces[unconsInd] < 0)]
+        if needToFree:
+            dofHelper.unconstraint(needToFree)
+            print('Contact condition updated. Remove constraints and recompute')
+            qNew, reactionForces = objfun(q0)
+
+        # inspect qNew to see if any one falls below ground, which should be CONSTRAINED
+        while True:
+            q0Effective = None
+            for c in range(nv):
+                index = 2 * c + 1
+                if qNew[index] < 0:  # y < 0: bad!
+                    if q0Effective is None:
+                        q0Effective = q0.copy()
+                    q0Effective[index] = 0
+                    dofHelper.constraint([index])
+            if q0Effective is None:
+                break
+            else:
+                print('Contact condition violated. Add constraints and recompute')
+                qNew, reactionForces = objfun(q0Effective)
 
         ctime += dt
         u = (qNew - q0) / dt

@@ -82,32 +82,28 @@ def runDER():
     # Constrained dofs
     dofHelper = DofHelper(len(q0))
     dofHelper.constraint(range(0, 4))
-    dofHelper.constraint([len(q0) - 1])
 
     u = np.zeros(2 * nv)
 
-    def objfun():
-        q0Uncons = dofHelper.unconstrained_v(q0)
+    def objfun(q0WithAdditionalConstraintsApplied):
         mUncons = dofHelper.unconstrained_v(m)
-        uUncons = dofHelper.unconstrained_v(u)
         mMat = np.diag(mUncons)
 
-        qCurrentIterate = q0.copy()
-        qUncons = dofHelper.unconstrained_v(q0)
+        qCurrentIterate = q0WithAdditionalConstraintsApplied.copy()
+        qUncons = dofHelper.unconstrained_v(qCurrentIterate)
         # Newton-Raphson scheme
         iter = 0
-        normf = tol * ScaleSolver * 10
-        while normf > tol * ScaleSolver:
+        while True:
             # get forces
             Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, 0)
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen)
             Fg = m * garr
 
             Forces = Fb + Fs + Fg
-            Forces = dofHelper.unconstrained_v(Forces)
 
             # Equation of motion
-            f = mUncons * (qUncons - q0Uncons) / dt ** 2 - mUncons * uUncons / dt - Forces
+            f = m * (qCurrentIterate - q0) / dt ** 2 - m * u / dt - Forces
+            fUncons = dofHelper.unconstrained_v(f)
 
             # Manipulate the Jacobians
             Jelastic = Jb + Js
@@ -115,18 +111,19 @@ def runDER():
             J = mMat / dt ** 2 - Jelastic
 
             # Newton's update
-            qUncons = qUncons - np.linalg.solve(J, f)
+            qUncons = qUncons - np.linalg.solve(J, fUncons)
             dofHelper.write_unconstrained_back(qCurrentIterate, qUncons)
 
             # Get the norm
-            normfNew = np.linalg.norm(f)
+            normfNew = np.linalg.norm(fUncons)
 
             # Update iteration number
             iter += 1
             print('Iter=%d, error=%f' % (iter - 1, normfNew))
-            normf = normfNew
 
-            if (iter > maximum_iter):
+            if normfNew < tol * ScaleSolver:
+                break
+            if iter > maximum_iter:
                 raise Exception('Cannot converge')
         return qCurrentIterate
 
@@ -142,7 +139,7 @@ def runDER():
         output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
 
-        qNew = objfun()
+        qNew = objfun(q0)
 
         ctime += dt
         u = (qNew - q0) / dt

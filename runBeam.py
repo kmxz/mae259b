@@ -2,16 +2,17 @@ from math import pi
 import numpy as np
 
 from cliUtils import cliRun
+from dofHelper import DofHelper
 from getFb import getFb
 from getFs import getFs
 
 
 def runDER():
     # number of vertices
-    nv = 6
+    nv = 20
 
     # time step
-    dt = 1e-2
+    dt = 1.5e-2
 
     # rod Length
     RodLength = 0.20
@@ -79,23 +80,23 @@ def runDER():
         q0[2 * c + 1] = nodes[c, 1]  # initial y-coord
 
     # Constrained dofs
-    consIndStart = range(4)
-    unconsInd = range(4, len(q0))
+    dofHelper = DofHelper(len(q0))
+    dofHelper.constraint(range(0, 4))
+    dofHelper.constraint([len(q0) - 1])
 
     u = np.zeros(2 * nv)
-    uUncons = u[unconsInd]
+    uUncons = dofHelper.unconstrained_v(u)
 
     def objfun(qUncons):
-        q0Uncons = q0[unconsInd]
-        mUncons = m[unconsInd]
+        q0Uncons = dofHelper.unconstrained_v(q0)
+        mUncons = dofHelper.unconstrained_v(m)
         mMat = np.diag(mUncons)
         # Newton-Raphson scheme
         iter = 0
         normf = tol * ScaleSolver * 10
         while normf > tol * ScaleSolver:
             qCurrentIterate = q0.copy()
-            qCurrentIterate[consIndStart] = q0[consIndStart]
-            qCurrentIterate[unconsInd] = qUncons
+            dofHelper.write_unconstrained_back(qCurrentIterate, qUncons)
 
             # get forces
             Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, 0)
@@ -103,14 +104,14 @@ def runDER():
             Fg = m * garr
 
             Forces = Fb + Fs + Fg
-            Forces = Forces[unconsInd]
+            Forces = dofHelper.unconstrained_v(Forces)
 
             # Equation of motion
             f = mUncons * (qUncons - q0Uncons) / dt ** 2 - mUncons * uUncons / dt - Forces
 
             # Manipulate the Jacobians
             Jelastic = Jb + Js
-            Jelastic = Jelastic[unconsInd.start:unconsInd.stop, unconsInd.start:unconsInd.stop]
+            Jelastic = dofHelper.unconstrained_m(Jelastic)
             J = mMat / dt ** 2 - Jelastic
 
             # Newton's update
@@ -140,14 +141,14 @@ def runDER():
         output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
 
-        qUncons = q0[unconsInd]
+        qUncons = dofHelper.unconstrained_v(q0)
         qUncons = objfun(qUncons)
 
         ctime = ctime + dt
-        uUncons = (qUncons - q0[unconsInd]) / dt
+        uUncons = (qUncons - dofHelper.unconstrained_v(q0)) / dt
 
         # Update x0
-        q0[unconsInd] = qUncons
+        dofHelper.write_unconstrained_back(q0, qUncons)
 
     # also save final state
     output = {'time': ctime, 'data': q0.tolist()}

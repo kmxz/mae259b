@@ -2,6 +2,7 @@ from math import pi, sin, cos
 import numpy as np
 
 from cliUtils import cliRun
+from dofHelper import DofHelper
 from getFb import getFb
 from getFp import getFp
 from getFs import getFs
@@ -13,6 +14,12 @@ def runDER():
 
     # time step
     dt = 1e-2
+
+    # initial center of circle
+    x0 = [0.0, 0.30]
+
+    # inflation pressure (N/m)
+    InflationPressure = 4.0
 
     # circle radius
     CircleRadius = 0.20
@@ -39,7 +46,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 2.5
+    totalTime = 2.0
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
@@ -49,8 +56,8 @@ def runDER():
     nodes = np.empty((nv, 2))
 
     for c in range(nv):
-        nodes[c, 0] = CircleRadius * cos(c * 2 * pi / nv + pi / 2)
-        nodes[c, 1] = CircleRadius * sin(c * 2 * pi / nv + pi / 2)
+        nodes[c, 0] = x0[0] + CircleRadius * cos(c * 2 * pi / nv + pi / 2)
+        nodes[c, 1] = x0[1] + CircleRadius * sin(c * 2 * pi / nv + pi / 2)
 
     ScaleSolver = dm * np.linalg.norm(g)  # i don't know why. maybe just take it as granted
 
@@ -78,40 +85,39 @@ def runDER():
         q0[2 * c + 1] = nodes[c, 1]  # initial y-coord
 
     # Constrained dofs
-    consIndStart = range(2)
-    unconsInd = range(2, len(q0))
+    dofHelper = DofHelper(len(q0))
+    dofHelper.constraint([1])
 
     u = np.zeros(2 * nv)
-    uUncons = u[unconsInd]
+    uUncons = dofHelper.unconstrained_v(u)
 
     def objfun(qUncons):
-        q0Uncons = q0[unconsInd]
-        mUncons = m[unconsInd]
+        q0Uncons = dofHelper.unconstrained_v(q0)
+        mUncons = dofHelper.unconstrained_v(m)
         mMat = np.diag(mUncons)
         # Newton-Raphson scheme
         iter = 0
         normf = tol * ScaleSolver * 10
         while normf > tol * ScaleSolver:
             qCurrentIterate = q0.copy()
-            qCurrentIterate[consIndStart] = q0[consIndStart]
-            qCurrentIterate[unconsInd] = qUncons
+            dofHelper.write_unconstrained_back(qCurrentIterate, qUncons)
 
             # get forces
             Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, -2 * pi / nv, isCircular=True)
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
             Fg = m * garr
-            Fp, Jp = getFp(qCurrentIterate, nv, refLen, 25.0)
+            Fp, Jp = getFp(qCurrentIterate, nv, refLen, InflationPressure)
 
             Forces = Fb + Fs + Fg + Fp
-            Forces = Forces[unconsInd]
+            Forces = dofHelper.unconstrained_v(Forces)
 
             # Equation of motion
             f = mUncons * (qUncons - q0Uncons) / dt ** 2 - mUncons * uUncons / dt - Forces
 
             # Manipulate the Jacobians
             Jelastic = Jb + Js
-            Jelastic = Jelastic[unconsInd.start:unconsInd.stop, unconsInd.start:unconsInd.stop]
-            Jp = Jp[unconsInd.start:unconsInd.stop, unconsInd.start:unconsInd.stop]
+            Jelastic = dofHelper.unconstrained_m(Jelastic)
+            Jp = dofHelper.unconstrained_m(Jp)
             J = mMat / dt ** 2 - Jelastic - Jp
 
             # Newton's update
@@ -141,14 +147,14 @@ def runDER():
         output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
 
-        qUncons = q0[unconsInd]
+        qUncons = dofHelper.unconstrained_v(q0)
         qUncons = objfun(qUncons)
 
         ctime = ctime + dt
-        uUncons = (qUncons - q0[unconsInd]) / dt
+        uUncons = (qUncons - dofHelper.unconstrained_v(q0)) / dt
 
         # Update x0
-        q0[unconsInd] = qUncons
+        dofHelper.write_unconstrained_back(q0, qUncons)
 
     # also save final state
     output = {'time': ctime, 'data': q0.tolist()}

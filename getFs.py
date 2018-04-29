@@ -1,3 +1,5 @@
+# Computing forces and Jacobian of stretching mode (which is the gradient and Hessian of stretching energy)
+
 import numpy as np
 from math import sqrt
 

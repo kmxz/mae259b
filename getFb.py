@@ -1,3 +1,6 @@
+# Computing forces and Jacobian of bending mode (which is the gradient and Hessian of bending energy)
+# It takes the result of differentiation carried out by "diff/diffWithInitialCurvature.py"
+
 import numpy as np
 from math import tan, atan
 

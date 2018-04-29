@@ -1,3 +1,6 @@
+# Utilities for command-line interface (when user runs runBeam.py or runCircle.py directly)
+# It will time the execution, backup the code and save results to a JSON file in "data" directory
+
 import datetime
 import inspect
 import json

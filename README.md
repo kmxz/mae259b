@@ -12,5 +12,5 @@ Environment requirement
 Files
 ----
 - `runBeam.py`: implementation of discrete elastic rods, for 2D straight beams.
-- `runCircle.py`: 2D elastic rods in a circular shape. **not tested yet**.
+- `runCircle.py`: 2D elastic rods in a circular shape.
 - `server.py`: serve existing solutions for visualization in web browsers.

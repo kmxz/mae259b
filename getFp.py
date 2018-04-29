@@ -1,8 +1,9 @@
+# Computing forces and Jacobian by uniform pressure on rods (i.e. air pressure inside a ball)
+
 from math import sqrt
 import numpy as np
 
 
-# the last paramter incicates whether it is a circular shape (i.e. the two ends are connected)
 def getFp(q, nv, refLen, forcePerUnitLength):
     Fp = np.zeros(len(q))
     Jp = np.zeros((len(q), len(q)))

@@ -1,5 +1,5 @@
-# Get Fi and Jij for bending modes, with initial curvature φₖₒ
-# Print the code that can be directly pasted into getFb.py
+# Get Fi and Jij for normal force on rod (air pressure)
+# Print the code that can be directly pasted into getFp.py
 
 from sympy import symbols, sqrt, diff
 

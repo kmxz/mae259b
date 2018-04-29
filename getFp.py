@@ -1,4 +1,5 @@
 # Computing forces and Jacobian by uniform pressure on rods (i.e. air pressure inside a ball)
+# It takes the result of differentiation carried out by "diff/diffForPressure.py"
 
 from math import sqrt
 import numpy as np

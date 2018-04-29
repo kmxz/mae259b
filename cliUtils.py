@@ -23,7 +23,7 @@ def cliRun(method):
     print("Computation used %f seconds, speed ratio %f" % (time_elapsed, time_elapsed / result['frames'][-1]['time']))
 
     result['code'] = code
-    json.dump(result, fp, separators = (',', ': '))
+    json.dump(result, fp, separators = (',', ':'))
 
     fp.close()
     print("Result saved to " + outputFileName)

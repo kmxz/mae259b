@@ -13,7 +13,6 @@ async def index(request):
     html.close()
     return Response(text=content, content_type='text/html')
 
-
 async def list(request):
     rec = [(parent[len('data'):], [f for f in files if f.endswith('.json')]) for (parent, dirs, files) in os.walk('data')]
     out = {k: v for (k, v) in rec if len(v)}
@@ -29,7 +28,11 @@ async def file_upload(request):
     out.close()
     return Response(text='OK', content_type='text/plain')
 
+async def on_prepare(request, response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+
 app = web.Application()
+app.on_response_prepare.append(on_prepare)
 app.router.add_route('GET', '/', index)
 app.router.add_static('/data', 'data')
 app.router.add_static('/static', 'visualize')

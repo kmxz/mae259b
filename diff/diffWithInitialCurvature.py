@@ -3,46 +3,30 @@
 
 from sympy import symbols, diff, tan, atan
 
-
 def φₖ(xₖₘ, xₖ, xₖₚ, yₖₘ, yₖ, yₖₚ):
     return atan(((xₖₚ - xₖ) * (yₖ - yₖₘ) - (xₖ - xₖₘ) * (yₖₚ - yₖ)) / ((xₖₚ - xₖ) * (xₖ - xₖₘ) + (yₖₚ - yₖ) * (yₖ - yₖₘ)))
 
-
 def Ebₖ(xₖₘ, xₖ, xₖₚ, yₖₘ, yₖ, yₖₚ, φₖₒ):
     return (2 * tan(φₖ(xₖₘ, xₖ, xₖₚ, yₖₘ, yₖ, yₖₚ) / 2.0) - 2 * tan(φₖₒ / 2.0)) ** 2
-
 
 xₖₘ, xₖ, xₖₚ, yₖₘ, yₖ, yₖₚ, φₖₒ = symbols('xkm1 xk xkp1 ykm1 yk ykp1 φk0')
 
 Eb = Ebₖ(xₖₘ, xₖ, xₖₚ, yₖₘ, yₖ, yₖₚ, φₖₒ)
 
 F1 = diff(Eb, xₖₘ)
-print("    F[0] =", F1)
 F2 = diff(Eb, yₖₘ)
-print("    F[1] =", F2)
 F3 = diff(Eb, xₖ)
-print("    F[2] =", F3)
 F4 = diff(Eb, yₖ)
-print("    F[3] =", F4)
 F5 = diff(Eb, xₖₚ)
-print("    F[4] =", F5)
 F6 = diff(Eb, yₖₚ)
-print("    F[5] =", F6)
 
 J11 = diff(F1, xₖₘ)
-print("    J11 =", J11)
 J12 = diff(F1, yₖₘ)
-print("    J12 =", J12)
 J13 = diff(F1, xₖ)
-print("    J13 =", J13)
 J14 = diff(F1, yₖ)
-print("    J14 =", J14)
 J15 = diff(F1, xₖₚ)
-print("    J15 =", J15)
 J16 = diff(F1, yₖₚ)
-print("    J16 =", J16)
 J22 = diff(F2, yₖₘ)
-print("    J22 =", J22)
 J23 = diff(F2, xₖ)
 print("    J23 =", J23)
 J24 = diff(F2, yₖ)

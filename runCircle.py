@@ -19,7 +19,7 @@ def runDER():
     x0 = [0.0, 0.50]
 
     # inflation pressure (N/m)
-    InflationPressure = 10.0
+    InflationPressure = 0.0
 
     # circle radius
     CircleRadius = 0.20
@@ -181,7 +181,7 @@ def runDER():
     output = {'time': ctime, 'data': q0.tolist()}
     outputData.append(output)
 
-    return {'meta': {'radius': r0, 'closed': True}, 'frames': outputData}
+    return {'meta': {'radius': r0, 'closed': True, 'ground': True}, 'frames': outputData}
 
 
 if __name__ == '__main__':

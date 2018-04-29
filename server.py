@@ -32,6 +32,7 @@ async def file_upload(request):
 app = web.Application()
 app.router.add_route('GET', '/', index)
 app.router.add_static('/data', 'data')
+app.router.add_static('/static', 'visualize')
 app.router.add_route('GET', '/list', list)
 app.router.add_route('POST', '/save', file_upload)
 

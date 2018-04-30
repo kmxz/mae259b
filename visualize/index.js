@@ -8,6 +8,7 @@ MAE259B.init = () => {
     const el$codePreviewRow = document.getElementById('code-preview-row');
     const el$codePreview = document.getElementById('code-preview');
     const el$fileName = document.getElementById('file-name');
+    const el$resetBtn = document.getElementById('reset-btn');
     const animOptions = MAE259B.setUpAnimOptions();
 
     let currentId = null;
@@ -97,7 +98,8 @@ MAE259B.init = () => {
                         });
                         MAE259B.setTc(el$title, title);
                         el$welcome.style.display = 'none';
-                        MAE259B.render(data, options, { saveScreenshot, el$canvas, el$display });
+                        el$resetBtn.style.display = 'block';
+                        MAE259B.render(data, options, { saveScreenshot, el$canvas, el$display, el$resetBtn });
                     });
                 }
             });

@@ -18,13 +18,14 @@
             position: relative;
             z-index: 1;
         }
-        #file-list, #code-preview-row {
+        #file-list, #code-preview-row, #reset-btn {
             display: none;
         }
     </style>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.min.js"></script>
     <script type="text/javascript" src="static/index.js"></script>
     <script type="text/javascript" src="static/render.js"></script>
+    <script type="text/javascript" src="static/camera.js"></script>
     <script type="text/javascript" src="static/utils.js"></script>
 </head>
 <script type="text/javascript">
@@ -34,7 +35,10 @@
     <div class="fullpage">
         <nav class="navbar navbar-dark bg-primary">
             <span class="navbar-brand" id="title">MAE 259B / Group 2: DER</span>
-            <span class="navbar-text" id="display">Stopped</span>
+            <form class="form-inline">
+                <span class="navbar-brand" id="display">Stopped</span>
+                <button type="button" class="btn btn-light" id="reset-btn">Reset camera</button>
+            </form>
         </nav>
         <canvas id="canvas"></canvas>
         <div id="welcome" class="mb-5">

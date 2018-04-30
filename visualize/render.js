@@ -1,5 +1,5 @@
-MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$display }) => {
-    const QUALITY_FACTOR = 1; // might be an INTERGER larger than 1, for adding intermediate nodes for rendering, use Catmull-Rom interpolation
+MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$display, el$resetBtn }) => {
+    const QUALITY_FACTOR = 2; // might be an INTERGER larger than 1, for adding intermediate nodes for rendering, use Catmull-Rom interpolation
     const USE_IMAGE = true; // true to use image for the ground-plane, instead of solid color
 
     const destWidth = el$canvas.parentNode.clientWidth;
@@ -53,16 +53,19 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         const gndMaterial = USE_IMAGE ? new THREE.MeshBasicMaterial({ map: texture }) :  new THREE.MeshLambertMaterial({ color: 0x333366 });
         const gndGeometry = new THREE.PlaneGeometry((maxX - minX) * 1.5, (maxX - minX) * 1.5 * 1373 / 2082);
         const gndPlane = new THREE.Mesh(gndGeometry, gndMaterial);
+        gndPlane.material.side = THREE.DoubleSide;
         gndPlane.position.set((minX + maxX) / 2, - meta.radius, 0);
         gndPlane.lookAt(new THREE.Vector3((minX + maxX) / 2, 1, 0));
         scene.add(gndPlane);
     }
 
+    const cameraRotator = MAE259B.initCamera(el$canvas, el$resetBtn);
     const cameraZ4Y = (maxY - minY + 4 * meta.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
     const cameraZ4X = ((maxX - minX + 4 * meta.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, Math.max(cameraZ4X, cameraZ4Y) / 4, 500);
-    camera.position.set((minX + maxX) / 2, (minY + maxY) / 2, Math.max(cameraZ4X, cameraZ4Y));
-    camera.lookAt(new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, 0));
+    const baseCameraPosition = new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, Math.max(cameraZ4X, cameraZ4Y));
+    camera.position.set(baseCameraPosition.x, baseCameraPosition.y, baseCameraPosition.z);
+    camera.lookAt(new THREE.Vector3(baseCameraPosition.x, baseCameraPosition.y, 0));
 
     const renderer = new THREE.WebGLRenderer({ canvas: el$canvas, antialias: true });
     renderer.render(scene, camera);
@@ -97,6 +100,10 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         }
         geometry.copy(new THREE.TubeBufferGeometry(new THREE.CatmullRomCurve3(nodes, meta.closed), sections, meta.radius, options.showNodes ? 16 : 32, meta.closed));
         geometry.needUpdate = true;
+
+        camera.position.set(Math.sin(cameraRotator.h) * baseCameraPosition.z + baseCameraPosition.x, Math.sin(cameraRotator.v) * baseCameraPosition.z + baseCameraPosition.y, Math.cos(cameraRotator.h) * baseCameraPosition.z);
+        camera.lookAt(new THREE.Vector3(baseCameraPosition.x, baseCameraPosition.y, 0));
+
         MAE259B.setTc(el$display, 'Animating: t = ' + secondsElapsed.toFixed(3));
         renderer.render(scene, camera);
         return shouldRequestNextFrame;
@@ -104,13 +111,14 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     const animate = function (time) {
         if (!startTime) {
             startTime = time;
-            requestAnimationFrame(animate);
-            return;
+        } else {
+            let secondsElapsed = (time - startTime) / 1000 * options.speed;
+            if (!doAnimation(secondsElapsed)) { // loop again
+                startTime = time;
+                fIndexHigh = 1;
+            }
         }
-        let secondsElapsed = (time - startTime) / 1000 * options.speed;
-        if (doAnimation(secondsElapsed)) {
-            requestAnimationFrame(animate);
-        }
+        requestAnimationFrame(animate);
     };
     if (options.screenshotEvery) { // screenshot mode
         let currentTime = 0;
@@ -119,6 +127,8 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
                 currentTime += options.screenshotEvery;
                 if (doAnimation(currentTime)) {
                     step();
+                } else {
+                    window.alert('Finished. View screenshots directory for results.');
                 }
             });
         };

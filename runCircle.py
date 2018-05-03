@@ -1,25 +1,26 @@
-from math import pi, sin, cos
+from math import pi, sin, cos, tan, atan
 import numpy as np
 
 from cliUtils import cliRun
 from dofHelper import DofHelper
 from getFb import getFb
+from getFd import getFd
 from getFp import getFp
 from getFs import getFs
 
 
 def runDER():
     # number of vertices
-    nv = 32
+    nv = 24
 
     # time step
-    dt = 1e-2
+    dt = 1e-3
 
     # initial center of circle
     x0 = [0.0, 0.50]
 
     # inflation pressure (N/m)
-    InflationPressure = 0.0
+    InflationPressure = 10.0
 
     # circle radius
     CircleRadius = 0.20
@@ -28,7 +29,7 @@ def runDER():
     CircumferenceLength = 2 * pi * CircleRadius
 
     # Density
-    rho = 1000.0
+    rho = 500.0
 
     # Cross-sectional radius of rod
     r0 = 5e-3
@@ -46,7 +47,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 2.0
+    totalTime = 1.5
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
@@ -89,6 +90,9 @@ def runDER():
     # dofHelper.constraint([1])
 
     u = np.zeros(2 * nv)
+    for c in range(nv):
+        u[2 * c] = -0.5
+        u[2 * c + 1] = -15.0
 
     def objfun(q0WithAdditionalConstraintsApplied):
         mUncons = dofHelper.unconstrained_v(m)
@@ -104,8 +108,9 @@ def runDER():
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
             Fg = m * garr
             Fp, Jp = getFp(qCurrentIterate, nv, refLen, InflationPressure)
+            Fd, Jd = getFd(qCurrentIterate, q0, nv, dt, 0.02)
 
-            Forces = Fb + Fs + Fg + Fp
+            Forces = Fb + Fs + Fg + Fp + Fd
 
             # Equation of motion
             f = m * (qCurrentIterate - q0) / dt ** 2 - m * u / dt - Forces
@@ -115,7 +120,8 @@ def runDER():
             Jelastic = Jb + Js
             Jelastic = dofHelper.unconstrained_m(Jelastic)
             Jp = dofHelper.unconstrained_m(Jp)
-            J = mMat / dt ** 2 - Jelastic - Jp
+            Jd = dofHelper.unconstrained_m(Jd)
+            J = mMat / dt ** 2 - Jelastic - Jp - Jd
 
             # Newton's update
             qUncons = qUncons - np.linalg.solve(J, fUncons)

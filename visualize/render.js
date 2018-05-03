@@ -1,6 +1,7 @@
 MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$display, el$resetBtn }) => {
-    const QUALITY_FACTOR = 2; // might be an INTERGER larger than 1, for adding intermediate nodes for rendering, use Catmull-Rom interpolation
-    const USE_IMAGE = true; // true to use image for the ground-plane, instead of solid color
+    const QUALITY_FACTOR = 1; // might be an INTERGER larger than 1, for adding intermediate nodes for rendering, use Catmull-Rom interpolation
+    const USE_IMAGE_FOR_GROUND = false; // true to use image for the ground-plane, instead of solid color
+    const USE_IMAGE_FOR_RING = false; // true to use image for the ground-plane, instead of solid color
 
     const destWidth = el$canvas.parentNode.clientWidth;
     const destHeight = el$canvas.parentNode.clientHeight - el$canvas.previousElementSibling.clientHeight;
@@ -24,10 +25,11 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
 
     const geometry = new THREE.TubeBufferGeometry(path, sections, meta.radius, options.showNodes ? 16 : 32, meta.closed);
 
-    const material = new THREE.MeshLambertMaterial({
-        color: 0x2962FF,
+    const rodTexture = new THREE.TextureLoader().load('static/two.png');
+    rodTexture.rotation = meta.closed ? 0 : Math.PI / 2;
+    const material = new THREE.MeshLambertMaterial(Object.assign(USE_IMAGE_FOR_RING ? { map: rodTexture } : { color: 0x2962FF }, {
         wireframe: options.showNodes
-    });
+    }));
 
     const scene = new THREE.Scene();
     scene.add(new THREE.Mesh(geometry, material));
@@ -50,7 +52,7 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     if (meta.ground) {
         const texture = new THREE.TextureLoader().load('static/book.jpg');
         texture.anisotropy = 32;
-        const gndMaterial = USE_IMAGE ? new THREE.MeshBasicMaterial({ map: texture }) :  new THREE.MeshLambertMaterial({ color: 0x333366 });
+        const gndMaterial = USE_IMAGE_FOR_GROUND ? new THREE.MeshBasicMaterial({ map: texture }) :  new THREE.MeshLambertMaterial({ color: 0x333366 });
         const gndGeometry = new THREE.PlaneGeometry((maxX - minX) * 1.5, (maxX - minX) * 1.5 * 1373 / 2082);
         const gndPlane = new THREE.Mesh(gndGeometry, gndMaterial);
         gndPlane.material.side = THREE.DoubleSide;

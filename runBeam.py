@@ -132,12 +132,10 @@ def runDER():
 
     ctime = 0
 
-    outputData = []
+    outputData = [{'time': ctime, 'data': q0.tolist()}]
 
     for timeStep in range(Nsteps):
         print('t = %f' % ctime)
-        output = {'time': ctime, 'data': q0.tolist()}
-        outputData.append(output)
 
         qNew = objfun(q0)
 
@@ -147,9 +145,9 @@ def runDER():
         # Update x0 and u
         q0 = qNew
 
-    # also save final state
-    output = {'time': ctime, 'data': q0.tolist()}
-    outputData.append(output)
+        # save state
+        output = {'time': ctime, 'data': q0.tolist()}
+        outputData.append(output)
 
     return {'meta': {'radius': r0, 'closed': False}, 'frames': outputData}
 

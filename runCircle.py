@@ -9,15 +9,22 @@ from getFp import getFp
 from getFs import getFs
 
 
+class GoBackInTime(Exception):
+    pass
+
+
 def runDER():
     # number of vertices
     nv = 24
 
-    # time step
-    dt = 1e-3
+    # base time step
+    bdt = 5e-3
+
+    # minimum time step
+    mdt = 1e-4
 
     # initial center of circle
-    x0 = [0.0, 0.50]
+    x0 = [0.0, 0.60]
 
     # inflation pressure (N/m)
     InflationPressure = 10.0
@@ -132,50 +139,58 @@ def runDER():
 
             # Update iteration number
             iter += 1
-            print('Iter=%d, error=%f' % (iter - 1, normfNew))
 
             if normfNew < tol * ScaleSolver:
+                # print('Solved after %d iterations' % iter)
                 break
             if iter > maximum_iter:
-                raise Exception('Cannot converge')
+                raise Exception('Cannot converge after %d iterations, error=%f' % (iter, normfNew))
         return qCurrentIterate, f
 
-    # Time marching
-    Nsteps = int(totalTime / dt)  # number of time steps
-
     ctime = 0
+    dt = bdt
 
-    outputData = []
+    outputData = [{'time': ctime, 'data': q0.tolist()}]
 
-    for timeStep in range(Nsteps):
+    while ctime <= totalTime:
         print('t = %f' % ctime)
-        output = {'time': ctime, 'data': q0.tolist()}
-        outputData.append(output)
 
         qNew, reactionForces = objfun(q0)
 
         # inspect reactionForces to see if any one is negative, which should be UNCONSTRAINED
+        nextDt = dt
         needToFree = [unconsInd for unconsInd in dofHelper._constrained if (reactionForces[unconsInd] < 0)]
         if needToFree:
             dofHelper.unconstraint(needToFree)
             print('Contact condition updated. Remove constraints and recompute')
             qNew, reactionForces = objfun(q0)
+            if not dofHelper._constrained:
+                print('Set to larger time step')
+                nextDt = bdt  # go back to larger time step from the next time
 
         # inspect qNew to see if any one falls below ground, which should be CONSTRAINED
-        while True:
-            q0Effective = None
-            for c in range(nv):
-                index = 2 * c + 1
-                if qNew[index] < 0:  # y < 0: bad!
-                    if q0Effective is None:
-                        q0Effective = q0.copy()
-                    q0Effective[index] = 0
-                    dofHelper.constraint([index])
-            if q0Effective is None:
-                break
-            else:
-                print('Contact condition violated. Add constraints and recompute')
-                qNew, reactionForces = objfun(q0Effective)
+        try:
+            while True:
+                q0Effective = None
+                for c in range(nv):
+                    index = 2 * c + 1
+                    if qNew[index] < 0:  # y < 0: bad!
+                        if dt > mdt:
+                            print('Set to smaller time step')
+                            ctime += mdt - dt
+                            dt = mdt
+                            raise GoBackInTime
+                        if q0Effective is None:
+                            q0Effective = q0.copy()
+                        q0Effective[index] = 0
+                        dofHelper.constraint([index])
+                if q0Effective is None:
+                    break
+                else:
+                    print('Contact condition violated. Add constraints and recompute')
+                    qNew, reactionForces = objfun(q0Effective)
+        except GoBackInTime:
+            continue
 
         ctime += dt
         u = (qNew - q0) / dt
@@ -183,9 +198,12 @@ def runDER():
         # Update x0
         q0 = qNew
 
-    # also save final state
-    output = {'time': ctime, 'data': q0.tolist()}
-    outputData.append(output)
+        # update dt
+        dt = nextDt
+
+        # save state
+        output = {'time': ctime, 'data': q0.tolist()}
+        outputData.append(output)
 
     return {'meta': {'radius': r0, 'closed': True, 'ground': True}, 'frames': outputData}
 

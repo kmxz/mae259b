@@ -23,12 +23,13 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     const path = new THREE.CatmullRomCurve3(frames[0].points, meta.closed);
     const sections = (frames[0].points.length - (meta.closed ? 0 : 1)) * QUALITY_FACTOR;
 
-    const geometry = new THREE.TubeBufferGeometry(path, sections, meta.radius, options.showNodes ? 16 : 32, meta.closed);
+    const geometry = new THREE.TubeBufferGeometry(path, sections, meta.radius, options.showNodes ? 12 : 24, meta.closed);
 
     const rodTexture = new THREE.TextureLoader().load('static/two.png');
     rodTexture.rotation = meta.closed ? 0 : Math.PI / 2;
     const material = new THREE.MeshLambertMaterial(Object.assign(USE_IMAGE_FOR_RING ? { map: rodTexture } : { color: 0x2962FF }, {
-        wireframe: options.showNodes
+        wireframe: options.showNodes,
+        opacity: options.showNodes ? 0.25 : 1
     }));
 
     const scene = new THREE.Scene();
@@ -45,7 +46,7 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         frames[0].points.forEach(entry =>
             dotGeometry.vertices.push(new THREE.Vector3(entry.x, entry.y, 0))
         );
-        const dotMaterial = new THREE.PointsMaterial({ size: 4, sizeAttenuation: false, color: 0xffffff });
+        const dotMaterial = new THREE.PointsMaterial({ size: 8, sizeAttenuation: false, color: 0xffffff });
         scene.add(new THREE.Points(dotGeometry, dotMaterial));
     }
 
@@ -100,7 +101,7 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
             });
             dotGeometry.verticesNeedUpdate = true;
         }
-        geometry.copy(new THREE.TubeBufferGeometry(new THREE.CatmullRomCurve3(nodes, meta.closed), sections, meta.radius, options.showNodes ? 16 : 32, meta.closed));
+        geometry.copy(new THREE.TubeBufferGeometry(new THREE.CatmullRomCurve3(nodes, meta.closed), sections, meta.radius, options.showNodes ? 12 : 24, meta.closed));
         geometry.needUpdate = true;
 
         camera.position.set(Math.sin(cameraRotator.h) * baseCameraPosition.z + baseCameraPosition.x, Math.sin(cameraRotator.v) * baseCameraPosition.z + baseCameraPosition.y, Math.cos(cameraRotator.h) * baseCameraPosition.z);

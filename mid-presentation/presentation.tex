@@ -7,13 +7,15 @@
 \usetheme{metropolis}
 
 \usepackage{luatex85}
-\usepackage{multimedia}
 \usepackage{graphicx}
-\usepackage{multicol}
 \usepackage{qrcode}
 
 \usepackage{mathtools}
 \mathtoolsset{showonlyrefs}
+
+% https://stackoverflow.com/a/722954/2098471
+\usepackage{chngpage}
+\newenvironment{widecenter}{\begin{adjustwidth}{-1cm}{-1cm}\begin{center}}{\end{center}\end{adjustwidth}}
 
 \usepackage[absolute,overlay]{textpos}
 \setlength{\TPHorizModule}{\paperwidth}
@@ -22,6 +24,10 @@
 % https://tex.stackexchange.com/a/43005
 \newlength{\currentparskip} 
 \newenvironment{minipageparskip}[1]{\setlength{\currentparskip}{\parskip}\begin{minipage}{#1}\setlength{\parskip}{\currentparskip}}{\end{minipage}}
+
+\usepackage{multimedia}
+\setlength\unitlength{1cm}
+\newcommand{\resvideo}[3]{\movie[width=#2cm,height=#3cm,poster,loop]{\framebox(#2,#3){\includegraphics[width=0.375cm]{res/video.png}\texttt{ #1}}}{video/#1.mp4}}
 
 % END OF CONFIGURATION
 
@@ -32,20 +38,22 @@
 \begin{document}
     \maketitle
     \begin{frame}{What we did - Starting point}
+    	\small
         \textbf{Start from the homework code}\\
-	    Adapted from the MATLAB sample code, translated into Python, with minor changes and optimizations
+	    Adapted from the MATLAB sample code, translated into Python, with minor changes and optimizations.
         
         \textbf{Build utilities}\\
-        Command line interface, 3D visualization tool, code snapshot tool, etc.
+        Command line interface, 3D visualization tool, code snapshot tool, etc..
         
         \begin{center}
-        	 \movie[width=4.0073cm,height=3.3927cm,showcontrols,poster,loop]{(Video: hw-render)}{res/hw-render.mp4}
+        	 \resvideo{hw-render}{4.0073}{3.3927}
         	 \hspace{2cm}
-        	 \movie[width=4.0073cm,height=3.3927cm,showcontrols,poster,loop]{(Video: hw-nodes)}{res/hw-nodes.mp4} 
+        	 \resvideo{hw-nodes}{4.0073}{3.3927}
         \end{center}
+	    \tiny{Not all PDF viewers can play videos. If not playable here, the videos can be found at \url{https://github.com/kmxz/mae259b-project/tree/master/mid-presentation/video}}.
     \end{frame}
     \begin{frame}{What we did - Performance optimization}
-    	Profiling shows $90\%$ of time is spent on calculating $F$ and $J$
+    	Profiling shows $90\%$ of time is spent on calculating $F$ and $J$.
     	
     	\includegraphics[width=0.9\textwidth]{res/getFb.png}
     	\begin{textblock}{0.3}[1,0](1,0.25)
@@ -56,15 +64,15 @@
 	\end{frame}
 	\begin{frame}{What we did - Natural curvature}
 		\begin{minipageparskip}{0.5\textwidth}
-			When calculating bending energy, replace $\frac12EI(\phi_k)^2$ with $\frac12EI(\phi_k - \phi_{k0})^2$
+			When calculating bending energy, replace $\frac12EI(\phi_k)^2$ with $\frac12EI(\phi_k - \phi_{k0})^2$.
 			
-			The formulas for calculating $F$ and $J$ need to be changed (do differentiation again)
+			The formulas for calculating $F$ and $J$ need to be changed (do differentiation again).
 			
 			\footnotesize
 			To verify the result:
 			\begin{itemize}
-				\item Expect same result as previous code when $\phi_0$ = 0
-				\item Expect a straight beam to recover natural curvature when no external force applied
+				\item Expect same result as previous code when $\phi_0$ = 0;
+				\item Expect a straight beam to recover natural curvature when no external force applied.
 			\end{itemize}
 		\end{minipageparskip}%
 		\hspace{0.05\textwidth}%
@@ -78,21 +86,23 @@
 		For bending, instead of $nv - 2$ components, we have $nv$ components.\\
 		For stretching, instead of $nv - 1$ components, we have $nv$ components.
 		
-		When compositing the Jacobians, new components added to connect two ends together:
+		When assembl the Jacobians, new components added to connect two ends together:
 		
 		\begin{center}
 			\includegraphics[width=0.6\textwidth]{res/composition.png}
 		\end{center}
 	\end{frame}
 	\begin{frame}{What we did - Circular structure}
-		Verify our code by running the ``hanging circle''
-		
-		\begin{tabular}{ccc}
-			$Y = 10^6\,\mathrm{Pa}$ & $Y = 10^7\,\mathrm{Pa}$ & $Y = 10^8\,\mathrm{Pa}$\\
-			\movie[width=3.09cm,height=3.11cm,showcontrols,poster,loop]{(Video: 1e6)}{res/1e6.mp4} & 
-			\movie[width=3.09cm,height=3.11cm,showcontrols,poster,loop]{(Video: 1e7)}{res/1e7.mp4} & 
-			\movie[width=3.09cm,height=3.11cm,showcontrols,poster,loop]{(Video: 1e8)}{res/1e8.mp4}
-		\end{tabular}
+		Verify our code by running the ``hanging circle'':
+		\vspace{0.5cm}
+		\begin{widecenter}
+			\begin{tabular}{ccc}
+				$Y = 10^6\,\mathrm{Pa}$ & $Y = 10^7\,\mathrm{Pa}$ & $Y = 10^8\,\mathrm{Pa}$ \\
+				\resvideo{1e6}{3.732}{3.708} & 
+				\resvideo{1e7}{3.732}{3.708} & 
+				\resvideo{1e8}{3.732}{3.708}
+			\end{tabular}
+		\end{widecenter}
 	\end{frame}
 	\begin{frame}{What we did - Inflation pressure}
 		\begin{center}
@@ -104,14 +114,14 @@
 		As force is dependent on actual positions of nodes, we need to add the variation into the Jabobian matrix. We simply take derivatives on the forces.
 	\end{frame}
 	\begin{frame}{What we did - Surface contact} 
-		\textbf{Predictor-corrector method} is used
+		\textbf{Predictor-corrector method} is used.
 		
 		\footnotesize
 		Assume a surface at $y = 0$, When doing time-marching, on each frame:
 		\begin{enumerate}
-			\item Compute $\underline q(t)$ as before
-			\item Check if there exists any node whose $y < 0$. If there is any, set it as a temporarily constrained DOF with $y = 0$, and recompute current frame
-			\item Check if there exists any temporarily constrained DOF, such that the normal \textit{force} between the surface and the node is negative. Remove such temporary constraint, and recompute current frame
+			\item Compute $\underline q(t)$ as before;
+			\item Check if there exists any node whose $y < 0$. If there is any, set it as a temporarily constrained DOF with $y = 0$, and recompute current frame;
+			\item Check if there exists any temporarily constrained DOF, such that the normal \textit{force} between the surface and the node is negative. Remove such temporary constraint, and recompute current frame.
 		\end{enumerate}
 		\begin{center}
 			\includegraphics[width=\textwidth]{res/force.png}
@@ -122,12 +132,40 @@
 		
 		\includegraphics[width=1\textwidth]{res/corrector.png}
 	\end{frame}
-	\begin{frame}{All set!}
-		\begin{tabular}{cc}
-			Low pressure & High pressure\\
-			\movie[width=4.615cm,height=4.665cm,showcontrols,poster,loop]{(Video: l-pressure)}{res/l-pressure.mp4} & 
-			\movie[width=4.615cm,height=4.665cm,showcontrols,poster,loop]{(Video: h-pressure)}{res/h-pressure.mp4}
-		\end{tabular}
+	\begin{frame}{Objective completed!}
+		\begin{widecenter}
+			\begin{tabular}{cc}
+				Low pressure & High pressure \\
+				\resvideo{l-pressure}{5.76875}{5.83125} & 
+				\resvideo{h-pressure}{5.76875}{5.83125}
+			\end{tabular}
+		\end{widecenter}
+	\end{frame}
+	\begin{frame}{What we did - Damping}
+		Without damping, we have oscillations.
+		
+		Naïve damping $\underline F_{d,k} \propto -\underline v_k$ ruins bulk motion (as our bulk velocity is high)
+		
+		So we use velocity relative to center of mass: $\underline F_{d,k} \propto -(\underline v_k - \underline v_{cm})$
+		\vspace{0.5cm}
+		\begin{widecenter}
+			\begin{tabular}{ccc}
+				No damping & Naïve damping & CM-Relative damping \\
+				\resvideo{no-damp}{3.8467}{3.11} & 
+				\resvideo{bad-damp}{3.6467}{3.11} & 
+				\resvideo{good-damp}{3.8467}{3.11}
+			\end{tabular}	
+		\end{widecenter}
+	\end{frame}
+	\begin{frame}{Problem: Shape Jitter}
+		\begin{widecenter}
+			\resvideo{jitter}{4.3971}{3.75}
+			\resvideo{jitter-slow}{5.8929}{3.75}
+		\end{widecenter}
+		\begin{itemize}
+			\item Step size too large, everything bashed to ground before reacting
+			\item No self-intersection detection
+		\end{itemize}
 	\end{frame}
 	\begin{frame}{Project on GitHub now!}
 		All code, results (and these slides) uploaded to

@@ -1,5 +1,5 @@
-MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$display, el$resetBtn }) => {
-    const QUALITY_FACTOR = 1; // might be an INTERGER larger than 1, for adding intermediate nodes for rendering, use Catmull-Rom interpolation
+MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$display, buttons }) => {
+    const QUALITY_FACTOR = 2; // might be an INTERGER larger than 1, for adding intermediate nodes for rendering, use Catmull-Rom interpolation
     const USE_IMAGE_FOR_GROUND = false; // true to use image for the ground-plane, instead of solid color
     const USE_IMAGE_FOR_RING = false; // true to use image for the ground-plane, instead of solid color
 
@@ -62,7 +62,7 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         scene.add(gndPlane);
     }
 
-    const cameraRotator = MAE259B.initCamera(el$canvas, el$resetBtn);
+    const cameraRotator = MAE259B.initCamera(el$canvas, buttons.reset);
     const cameraZ4Y = (maxY - minY + 4 * meta.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
     const cameraZ4X = ((maxX - minX + 4 * meta.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, Math.max(cameraZ4X, cameraZ4Y) / 4, 500);
@@ -73,7 +73,6 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     const renderer = new THREE.WebGLRenderer({ canvas: el$canvas, antialias: true });
     renderer.render(scene, camera);
 
-    let startTime = null;
     let fIndexHigh = 1;
     const doAnimation = secondsElapsed => {
         let shouldRequestNextFrame = true;
@@ -88,13 +87,11 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         }
         const fIndexLow = fIndexHigh - 1;
         const frameIndex = (secondsElapsed - frames[fIndexLow].time) / (frames[fIndexHigh].time - frames[fIndexLow].time) + fIndexLow;
-        const nodes = frames[fIndexHigh].points.map((fhp, vindex) => {
-            return new THREE.Vector3(
-                fhp.x * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].x * (fIndexHigh - frameIndex),
-                fhp.y * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].y * (fIndexHigh - frameIndex),
-                fhp.z * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].z * (fIndexHigh - frameIndex)
-            );
-        });
+        const nodes = frames[fIndexHigh].points.map((fhp, vindex) => new THREE.Vector3(
+            fhp.x * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].x * (fIndexHigh - frameIndex),
+            fhp.y * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].y * (fIndexHigh - frameIndex),
+            fhp.z * (frameIndex - fIndexLow) + frames[fIndexLow].points[vindex].z * (fIndexHigh - frameIndex)
+        ));
         if (options.showNodes) {
             nodes.forEach((node, vindex) => {
                 dotGeometry.vertices[vindex].set(node.x, node.y, node.z);
@@ -111,18 +108,6 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         renderer.render(scene, camera);
         return shouldRequestNextFrame;
     };
-    const animate = function (time) {
-        if (!startTime) {
-            startTime = time;
-        } else {
-            let secondsElapsed = (time - startTime) / 1000 * options.speed;
-            if (!doAnimation(secondsElapsed)) { // loop again
-                startTime = time;
-                fIndexHigh = 1;
-            }
-        }
-        requestAnimationFrame(animate);
-    };
     if (options.screenshotEvery) { // screenshot mode
         let currentTime = 0;
         const step = () => {
@@ -137,6 +122,35 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         };
         step();
     } else { // animate mode
+        document.body.classList.remove('not-playing');
+        let animationActive = true;
+        let startTime = performance.now();
+        const animate = time => {
+            let secondsElapsed;
+            if (animationActive) {
+                secondsElapsed = (time - startTime) / 1000 * options.speed;
+            } else {
+                secondsElapsed = frames[fIndexHigh].time;
+            }
+            if (!doAnimation(secondsElapsed)) { // loop again
+                startTime = time;
+                fIndexHigh = 1;
+            }
+            requestAnimationFrame(animate);
+        };
+        buttons.backward.addEventListener('click', () => {
+            animationActive = false;
+            fIndexHigh -= 1;
+        });
+        buttons.forward.addEventListener('click', () => {
+            animationActive = false;
+            fIndexHigh += 1;
+        });
+        buttons.play.addEventListener('click', () => {
+            if (animationActive) { return; }
+            startTime = performance.now() - frames[fIndexHigh].time * 1000 / options.speed;
+            animationActive = true;
+        });
         requestAnimationFrame(animate);
     }
 };

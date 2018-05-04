@@ -8,7 +8,6 @@ MAE259B.init = () => {
     const el$codePreviewRow = document.getElementById('code-preview-row');
     const el$codePreview = document.getElementById('code-preview');
     const el$fileName = document.getElementById('file-name');
-    const el$resetBtn = document.getElementById('reset-btn');
     const animOptions = MAE259B.setUpAnimOptions();
 
     let currentId = null;
@@ -32,7 +31,7 @@ MAE259B.init = () => {
         if (keys.length) {
             let selected = null;
             const fl = document.getElementById('file-list');
-            const btn = fl.nextElementSibling;
+            const btn = document.getElementById('start-button');
             MAE259B.setTc(fl.previousElementSibling, 'Select a previous result to load.');
             btn.classList.remove('disabled');
             keys.forEach(dir => {
@@ -98,8 +97,11 @@ MAE259B.init = () => {
                         });
                         MAE259B.setTc(el$title, title);
                         el$welcome.style.display = 'none';
-                        el$resetBtn.style.display = 'block';
-                        MAE259B.render(data, options, { saveScreenshot, el$canvas, el$display, el$resetBtn });
+                        const buttons = {};
+                        ['backward', 'forward', 'play', 'reset'].forEach(name => {
+                            buttons[name] = document.getElementById(name + '-btn');
+                        });
+                        MAE259B.render(data, options, { saveScreenshot, el$canvas, el$display, buttons });
                     });
                 }
             });

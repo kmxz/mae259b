@@ -3,6 +3,7 @@
 <head>
     <title>Console</title>
     <link rel="stylesheet" type="text/css" href="https://stackpath.bootstrapcdn.com/bootswatch/4.1.0/cosmo/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
     <style type="text/css">
         html, body, .fullpage {
             height: 100%;
@@ -18,8 +19,11 @@
             position: relative;
             z-index: 1;
         }
-        #file-list, #code-preview-row, #reset-btn {
+        #file-list, #code-preview-row {
             display: none;
+        }
+        body.not-playing .hide-when-not-play {
+            visibility: hidden;
         }
     </style>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.min.js"></script>
@@ -31,13 +35,16 @@
 <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', MAE259B.init);
 </script>
-<body>
+<body class="not-playing">
     <div class="fullpage">
         <nav class="navbar navbar-dark bg-primary">
             <span class="navbar-brand" id="title">MAE 259B / Group 2: DER</span>
             <form class="form-inline">
-                <span class="navbar-brand" id="display">Stopped</span>
-                <button type="button" class="btn btn-light" id="reset-btn">Reset camera</button>
+                <button type="button" class="btn btn-light hide-when-not-play" id="reset-btn" title="Reset camera"><i class="material-icons">videocam</i></button>
+                <button type="button" class="btn btn-light hide-when-not-play" id="play-btn" title="Resume playback"><i class="material-icons">play_arrow</i></button>
+                <button type="button" class="btn btn-light hide-when-not-play" id="backward-btn" title="One time-step back"><i class="material-icons">skip_previous</i></button>
+                <button type="button" class="btn btn-light hide-when-not-play" id="forward-btn" title="One time-step forward"><i class="material-icons">skip_next</i></button>
+                <span class="navbar-brand ml-3 mr-0" id="display">Stopped</span>
             </form>
         </nav>
         <canvas id="canvas"></canvas>
@@ -82,6 +89,7 @@
                             </div>
                         </div>
                     </div>
+                    <button class="btn btn-primary btn-block mt-4 disabled" id="start-button">Go</button>
                 </div>
                 <div class="col-sm-6">
                     <div class="card mt-4">
@@ -90,7 +98,6 @@
                             <p class="card-text">No saved result available.</p>
                             <ul class="list-group list-group-flush mb-4" id="file-list">
                             </ul>
-                            <button class="btn btn-primary disabled">Go</button>
                         </div>
                     </div>
                 </div>

@@ -17,10 +17,10 @@ def runDER():
     max_dt = 1e-2
 
     # min time step
-    min_dt = 1e-4
+    min_dt = 2e-4
 
     # limit du per step
-    limit_du_per_step = 0.2
+    limit_du_per_step = 0.05
 
     # initial center of circle
     x0 = [0.0, 0.50]
@@ -53,7 +53,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 1.5
+    totalTime = 0.6
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
@@ -152,21 +152,22 @@ def runDER():
     # Time marching
     ctime = 0
 
-    outputData = []
+    outputData = [{'time': ctime, 'data': q0.tolist()}]
 
     def checkMaxDuAndHackTimeIfNecessary(maxDu):  # check whether max-du is too large. if so, go back in time and reduce step size
         nonlocal dt, ctime
         if (dt > min_dt) and (maxDu > limit_du_per_step):  # du too large!
-            dt = max(dt * limit_du_per_step / maxDu, min_dt)
+            relax_ratio = limit_du_per_step / maxDu  # we may contract dt by this ratio. but to be efficient, we don't contract that much
+            dt = max((0.3 * relax_ratio + 0.45) * dt, min_dt)
             print('Reducing dt and recompute')
             return True
         else:
             return False
 
+    steps_attempted = 0
     while ctime <= totalTime:
         print('t = %f, dt = %f' % (ctime, dt))
-        output = {'time': ctime, 'data': q0.tolist()}
-        outputData.append(output)
+        steps_attempted += 1
 
         qNew, reactionForces, maxDu = objfun(q0)
         if checkMaxDuAndHackTimeIfNecessary(maxDu):
@@ -210,16 +211,16 @@ def runDER():
         # Update x0
         q0 = qNew
 
+        output = {'time': ctime, 'data': q0.tolist()}
+        outputData.append(output)
+
         if (dt < max_dt) and (maxDu < limit_du_per_step):
             relax_ratio = limit_du_per_step / maxDu  # we may relax dt by this ratio. but to be conservative, we don't relax that much
             dt = min((0.6 * relax_ratio + 0.4) * dt, max_dt)
             print('Increasing dt')
 
-    # also save final state
-    output = {'time': ctime, 'data': q0.tolist()}
-    outputData.append(output)
-
-    print('Steps used: %d' % len(outputData))
+    print('Steps attempted: %d' % steps_attempted)
+    print('Steps succeeded: %d' % len(outputData))
 
     return {'meta': {'radius': r0, 'closed': True, 'ground': True}, 'frames': outputData}
 

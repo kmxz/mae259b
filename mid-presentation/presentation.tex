@@ -27,12 +27,15 @@
 
 \usepackage{multimedia}
 \setlength\unitlength{1cm}
-\newcommand{\resvideo}[3]{\movie[width=#2cm,height=#3cm,poster,loop]{\framebox(#2,#3){\includegraphics[width=0.375cm]{res/video.png}\texttt{ #1}}}{video/#1.mp4}}
+\newcommand{\resvideo}[3]{\movie[width=#2cm,height=#3cm,poster,loop]{\framebox(#2,#3){\includegraphics[width=0.375cm]{res/video.png}\texttt{ #1{\footnotesize.mp4}}}}{video/#1.mp4}}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows}
 
 % END OF CONFIGURATION
 
 \title{MAE 259B Group 2 Progress Report}
-\date{\url{https://github.com/kmxz/mae259b-project}}
+\date{05/09/2018}
 \author{Siyuan Chen, Xiangzhou Kong, Long Chen}
 
 \begin{document}
@@ -86,7 +89,7 @@
 		For bending, instead of $nv - 2$ components, we have $nv$ components.\\
 		For stretching, instead of $nv - 1$ components, we have $nv$ components.
 		
-		When assembl the Jacobians, new components added to connect two ends together:
+		When assembling the Jacobians, new components added to connect two ends together:
 		
 		\begin{center}
 			\includegraphics[width=0.6\textwidth]{res/composition.png}
@@ -105,9 +108,30 @@
 		\end{widecenter}
 	\end{frame}
 	\begin{frame}{What we did - Inflation pressure}
-		\begin{center}
-			\includegraphics[width=0.4\textwidth]{res/inflation.png}
-		\end{center}
+		\begin{widecenter}
+			\begin{tikzpicture}[scale=0.6, every node/.style={scale=0.875}]
+				\draw [very thick] (0,0) node [right] {$\underline x_k$} -- (-4,-2) node [left] {$\underline x_{k+1}$};
+				\foreach \x in {0,...,10}
+				\draw[gray,-latex,thin] (\x / 2.5 - 4,\x / 5 - 2) -- (\x / 2.5 - 4 - 0.5,\x / 5 - 2 + 1);
+				\draw [gray,thin] (0 / 2.5 - 4 - 0.5,0 / 5 - 2 + 1) -- (10 / 2.5 - 4 - 0.5,10 / 5 - 2 + 1);
+				\node [gray] at (5.5 / 2.5 - 4 - 0.6,5.5 / 5 - 2 + 1.2) {f};
+				\node [circle,fill,minimum size=2mm,inner sep=0pt] at (0,0) {};
+				\node [circle,fill,minimum size=2mm,inner sep=0pt] at (-4,-2) {};
+			\end{tikzpicture}
+			\hspace{0.1cm}
+			\begin{tikzpicture}[baseline=-1cm]
+				\draw [-latex] (0,0) -- (2,0);
+				\node [above] at (1,0) {discretized};
+			\end{tikzpicture}
+			\hspace{0.1cm}
+			\begin{tikzpicture}[scale=0.6, every node/.style={scale=0.875}]
+				\draw [very thick] (0,0) node [right] {$\underline x_k$} -- (-4,-2) node [left] {$\underline x_{k+1}$};
+				\draw [gray,-latex,semithick] (0 / 2.5 - 4,0 / 5 - 2) -- (0 / 2.5 - 4 - 0.75,0 / 5 - 2 + 1.5) node [above] {$\frac{f}2 dl$};
+				\draw [gray,-latex,semithick] (10 / 2.5 - 4,10 / 5 - 2) -- (10 / 2.5 - 4 - 0.75,10 / 5 - 2 + 1.5) node [above] {$\frac{f}2 dl$};
+				\node [circle,fill,minimum size=2mm,inner sep=0pt] at (0,0) {};
+				\node [circle,fill,minimum size=2mm,inner sep=0pt] at (-4,-2) {};
+			\end{tikzpicture}
+		\end{widecenter}
 	
 		With $\underline x_k$ and $\underline x_{k+1}$, we can easily calculate force exerted on those two points. 
 		
@@ -117,7 +141,7 @@
 		\textbf{Predictor-corrector method} is used.
 		
 		\footnotesize
-		Assume a surface at $y = 0$, When doing time-marching, on each frame:
+		Assume a surface at $y = 0$, When doing time-marching, on each time step	:
 		\begin{enumerate}
 			\item Compute $\underline q(t)$ as before;
 			\item Check if there exists any node whose $y < 0$. If there is any, set it as a temporarily constrained DOF with $y = 0$, and recompute current frame;

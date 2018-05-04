@@ -1,10 +1,10 @@
-from math import pi, sin, cos, tan, atan
+from math import pi, sin, cos
+from copy import deepcopy
 import numpy as np
 
 from cliUtils import cliRun
 from dofHelper import DofHelper
 from getFb import getFb
-from getFd import getFd
 from getFp import getFp
 from getFs import getFs
 
@@ -13,8 +13,14 @@ def runDER():
     # number of vertices
     nv = 24
 
-    # time step
-    dt = 1e-3
+    # max time step
+    max_dt = 1e-2
+
+    # min time step
+    min_dt = 1e-4
+
+    # limit du per step
+    limit_du_per_step = 0.2
 
     # initial center of circle
     x0 = [0.0, 0.50]
@@ -94,6 +100,9 @@ def runDER():
         u[2 * c] = -0.5
         u[2 * c + 1] = -15.0
 
+    # set dt as max at the beginning
+    dt = max_dt
+
     def objfun(q0WithAdditionalConstraintsApplied):
         mUncons = dofHelper.unconstrained_v(m)
         mMat = np.diag(mUncons)
@@ -108,20 +117,20 @@ def runDER():
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
             Fg = m * garr
             Fp, Jp = getFp(qCurrentIterate, nv, refLen, InflationPressure)
-            Fd, Jd = getFd(qCurrentIterate, q0, nv, dt, 0.02)
 
-            Forces = Fb + Fs + Fg + Fp + Fd
+            Forces = Fb + Fs + Fg + Fp
 
             # Equation of motion
-            f = m * (qCurrentIterate - q0) / dt ** 2 - m * u / dt - Forces
+            du = (qCurrentIterate - q0) / dt - u
+            maxDu = np.amax(np.abs(du))
+            f = m * du / dt - Forces
             fUncons = dofHelper.unconstrained_v(f)
 
             # Manipulate the Jacobians
             Jelastic = Jb + Js
             Jelastic = dofHelper.unconstrained_m(Jelastic)
             Jp = dofHelper.unconstrained_m(Jp)
-            Jd = dofHelper.unconstrained_m(Jd)
-            J = mMat / dt ** 2 - Jelastic - Jp - Jd
+            J = mMat / dt ** 2 - Jelastic - Jp
 
             # Newton's update
             qUncons = qUncons - np.linalg.solve(J, fUncons)
@@ -132,34 +141,48 @@ def runDER():
 
             # Update iteration number
             iter += 1
-            print('Iter=%d, error=%f' % (iter - 1, normfNew))
+            print('Iter=%d, error=%.8f' % (iter - 1, normfNew))
 
             if normfNew < tol * ScaleSolver:
                 break
             if iter > maximum_iter:
                 raise Exception('Cannot converge')
-        return qCurrentIterate, f
+        return qCurrentIterate, f, maxDu
 
     # Time marching
-    Nsteps = int(totalTime / dt)  # number of time steps
-
     ctime = 0
 
     outputData = []
 
-    for timeStep in range(Nsteps):
-        print('t = %f' % ctime)
+    def checkMaxDuAndHackTimeIfNecessary(maxDu):  # check whether max-du is too large. if so, go back in time and reduce step size
+        nonlocal dt, ctime
+        if (dt > min_dt) and (maxDu > limit_du_per_step):  # du too large!
+            dt = max(dt * limit_du_per_step / maxDu, min_dt)
+            print('Reducing dt and recompute')
+            return True
+        else:
+            return False
+
+    while ctime <= totalTime:
+        print('t = %f, dt = %f' % (ctime, dt))
         output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
 
-        qNew, reactionForces = objfun(q0)
+        qNew, reactionForces, maxDu = objfun(q0)
+        if checkMaxDuAndHackTimeIfNecessary(maxDu):
+            continue
+
+        dofHelperBackup = deepcopy(dofHelper)  # in case we need to go back in time, we'll need to restore original dof configuration
 
         # inspect reactionForces to see if any one is negative, which should be UNCONSTRAINED
         needToFree = [unconsInd for unconsInd in dofHelper._constrained if (reactionForces[unconsInd] < 0)]
         if needToFree:
             dofHelper.unconstraint(needToFree)
             print('Contact condition updated. Remove constraints and recompute')
-            qNew, reactionForces = objfun(q0)
+            qNew, reactionForces, maxDu = objfun(q0)
+        if checkMaxDuAndHackTimeIfNecessary(maxDu):
+            dofHelper = dofHelperBackup
+            continue
 
         # inspect qNew to see if any one falls below ground, which should be CONSTRAINED
         while True:
@@ -175,7 +198,11 @@ def runDER():
                 break
             else:
                 print('Contact condition violated. Add constraints and recompute')
-                qNew, reactionForces = objfun(q0Effective)
+                qNew, reactionForces, maxDu = objfun(q0Effective)
+
+        if checkMaxDuAndHackTimeIfNecessary(maxDu):
+            dofHelper = dofHelperBackup
+            continue
 
         ctime += dt
         u = (qNew - q0) / dt
@@ -183,9 +210,16 @@ def runDER():
         # Update x0
         q0 = qNew
 
+        if (dt < max_dt) and (maxDu < limit_du_per_step):
+            relax_ratio = limit_du_per_step / maxDu  # we may relax dt by this ratio. but to be conservative, we don't relax that much
+            dt = min((0.6 * relax_ratio + 0.4) * dt, max_dt)
+            print('Increasing dt')
+
     # also save final state
     output = {'time': ctime, 'data': q0.tolist()}
     outputData.append(output)
+
+    print('Steps used: %d' % len(outputData))
 
     return {'meta': {'radius': r0, 'closed': True, 'ground': True}, 'frames': outputData}
 

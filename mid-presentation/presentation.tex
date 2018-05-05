@@ -230,30 +230,33 @@
 			\small
 			\textbf{Reaction force-based adaptive time stepping}
 			
-			Step size should be inverse proportional to the maximum nodal reaction force from the ground.
-		We use $F_{max}dt \leq 0.01\,\mathrm{N\cdot s}$ as the criteria for previous setup.
+			Step size should be inverse proportional to the maximum nodal reaction force from the ground.\\
+			We use $F_{max}dt \leq 0.008\,\mathrm{N\cdot s}$ as the threshold for previous setup.
 		
-			Instead of ``decreasing by half, increasing by doubling'' (as used in the paper), we examine $\frac{F_{max}dt}{0.01\,\mathrm{N\cdot s}}$ to decide how much we should increase/decrease.
+			Instead of ``decreasing by half, increasing by doubling'' (as used in the paper), we examine $\frac{F_{max}dt}{0.008\,\mathrm{N\cdot s}}$ to decide how much we should increase/decrease.
 		\end{minipageparskip}%
 		\hspace{0.05\textwidth}%
 		\begin{minipageparskip}{0.5\textwidth}
 			\tiny
 			\hfill
 			\begin{tikzpicture}
-				\begin{axis}[width=6cm,height=4cm,xlabel={$t$ [$\mathrm s$]},ylabel={$F_{max}$ [$\mathrm N$]},xmax=0.1]
+				\begin{axis}[width=6cm,height=4cm,xlabel={$t$ [$\mathrm s$]},ylabel={$F_{max}$ [$\mathrm N$]},xmax=0.1,xticklabel style={/pgf/number format/fixed}]
 					\addplot[black] table [x=t, y=f, col sep=comma, mark=none] {res/f-vs-dt.csv};
-					%\addplot {sqrt(x)};
 				\end{axis}
 			\end{tikzpicture}
 			
 			\hfill
 			\begin{tikzpicture}
-				\begin{axis}[width=6cm,height=4cm,xlabel={$t$ [$\mathrm s$]},ylabel={$dt$ [$\mathrm s$]},xmax=0.1]
+				\begin{axis}[width=6cm,height=4cm,xlabel={$t$ [$\mathrm s$]},ylabel={$dt$ [$\mathrm s$]},xmax=0.1,xticklabel style={/pgf/number format/fixed}]
 					\addplot[black] table [x=t, y=dt, col sep=comma, mark=none] {res/f-vs-dt.csv};
-				%\addplot {sqrt(x)};
 				\end{axis}
 			\end{tikzpicture}
 		\end{minipageparskip}
+	\end{frame}
+	\begin{frame}{Adaptive Time Stepping}
+		For a $2\,\mathrm s$ simulation, only $487$ steps attempted, resulting in $437$ valid steps. 
+		
+		Compared to $400$ steps (uniform $dt$ which results in shape jitter), we only need $\sim20\%$ more steps, instead of $\sim2000\%$.
 	\end{frame}
 	\begin{frame}{Project on GitHub now!}
 		All code, results (and these slides) uploaded to

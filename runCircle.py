@@ -5,6 +5,7 @@ import numpy as np
 from cliUtils import cliRun
 from dofHelper import DofHelper
 from getFb import getFb
+from getFf import getFf
 from getFp import getFp
 from getFs import getFs
 
@@ -14,13 +15,13 @@ def runDER():
     nv = 24
 
     # max time step
-    max_dt = 5e-3
+    max_dt = 4e-3
 
     # min time step
     min_dt = 2e-4
 
     # limit f*dt per step
-    limit_f_times_dt = 0.01
+    limit_f_times_dt = 0.005
 
     # initial center of circle
     x0 = [0.0, 0.50]
@@ -53,7 +54,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 0.6
+    totalTime = 2
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
@@ -104,8 +105,7 @@ def runDER():
     dt = max_dt
 
     def objfun(q0WithAdditionalConstraintsApplied):
-        mUncons = dofHelper.unconstrained_v(m)
-        mMat = np.diag(mUncons)
+        mMat = np.diag(dofHelper.unconstrained_v(m))
 
         qCurrentIterate = q0WithAdditionalConstraintsApplied.copy()
         qUncons = dofHelper.unconstrained_v(qCurrentIterate)
@@ -117,18 +117,21 @@ def runDER():
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
             Fg = m * garr
             Fp, Jp = getFp(qCurrentIterate, nv, refLen, InflationPressure)
+            Ff, Jf = getFf(qCurrentIterate, q0, nv, dt, dofHelper, 0.2)
 
-            Forces = Fb + Fs + Fg + Fp
+            Forces = Fb + Fs + Fg + Fp + Ff
 
             # Equation of motion
             f = m * ((qCurrentIterate - q0) / dt - u) / dt - Forces
+
             fUncons = dofHelper.unconstrained_v(f)
 
             # Manipulate the Jacobians
             Jelastic = Jb + Js
             Jelastic = dofHelper.unconstrained_m(Jelastic)
-            Jp = dofHelper.unconstrained_m(Jp)
-            J = mMat / dt ** 2 - Jelastic - Jp
+            Jexternal = Jp + Jf
+            Jexternal = dofHelper.unconstrained_m(Jexternal)
+            J = mMat / dt ** 2 - Jelastic - Jexternal
 
             # Newton's update
             qUncons = qUncons - np.linalg.solve(J, fUncons)

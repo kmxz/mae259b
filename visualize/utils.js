@@ -69,3 +69,5 @@ MAE259B.dtIndicator = frames => {
 
     return { scene, camera, setFrameNumber: (i => geometry.setDrawRange(0, i)) };
 };
+
+MAE259B.loadTexture = file => new Promise((res, rej) => new THREE.TextureLoader().load(file, res, null, rej));

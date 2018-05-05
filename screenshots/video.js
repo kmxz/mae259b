@@ -16,7 +16,7 @@ const mvs = fs.readdirSync('.').filter(_ => _.startsWith(prefix)).map((f, i) => 
 ));
 
 Promise.all(mvs).then(() =>
-	cp.exec('ffmpeg -framerate 15 -i ' + rd + '%02d.png ' + rd + 'output.mp4', {}, (error, stdout, stderr) => {
+	cp.exec('ffmpeg -framerate 25 -i ' + rd + '%02d.png ' + rd + 'output.mp4', {}, (error, stdout, stderr) => {
 		console.log(stdout);
 		console.log('Output file: ' + rd + 'output.mp4');
 	})

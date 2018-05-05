@@ -62,13 +62,16 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         scene.add(gndPlane);
     }
 
-    const cameraRotator = MAE259B.initCamera(el$canvas, buttons.reset);
     const cameraZ4Y = (maxY - minY + 4 * meta.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
     const cameraZ4X = ((maxX - minX + 4 * meta.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, Math.max(cameraZ4X, cameraZ4Y) / 4, 500);
     const baseCameraPosition = new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, Math.max(cameraZ4X, cameraZ4Y));
     camera.position.set(baseCameraPosition.x, baseCameraPosition.y, baseCameraPosition.z);
-    camera.lookAt(new THREE.Vector3(baseCameraPosition.x, baseCameraPosition.y, 0));
+
+    const controls = new THREE.OrbitControls(camera, el$canvas);
+    controls.target = new THREE.Vector3(baseCameraPosition.x, baseCameraPosition.y, 0);
+    controls.saveState();
+    controls.update();
 
     const renderer = new THREE.WebGLRenderer({ canvas: el$canvas, antialias: true });
     renderer.render(scene, camera);
@@ -100,9 +103,6 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         }
         geometry.copy(new THREE.TubeBufferGeometry(new THREE.CatmullRomCurve3(nodes, meta.closed), sections, meta.radius, options.showNodes ? 12 : 24, meta.closed));
         geometry.needUpdate = true;
-
-        camera.position.set(Math.sin(cameraRotator.h) * baseCameraPosition.z + baseCameraPosition.x, Math.sin(cameraRotator.v) * baseCameraPosition.z + baseCameraPosition.y, Math.cos(cameraRotator.h) * baseCameraPosition.z);
-        camera.lookAt(new THREE.Vector3(baseCameraPosition.x, baseCameraPosition.y, 0));
 
         MAE259B.setTc(el$display, 'Animating: t = ' + secondsElapsed.toFixed(3));
         renderer.render(scene, camera);
@@ -150,6 +150,9 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
             if (animationActive) { return; }
             startTime = performance.now() - frames[fIndexHigh].time * 1000 / options.speed;
             animationActive = true;
+        });
+        buttons.reset.addEventListener('click', () => {
+            controls.reset();
         });
         requestAnimationFrame(animate);
     }

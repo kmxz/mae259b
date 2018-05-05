@@ -31,6 +31,7 @@
 
 \usepackage{tikz}
 \usetikzlibrary{arrows}
+\usepackage{pgfplots}
 
 % END OF CONFIGURATION
 
@@ -61,7 +62,7 @@
     	\includegraphics[width=0.9\textwidth]{res/getFb.png}
     	\begin{textblock}{0.3}[1,0](1,0.25)
 		    \begin{center}
-		    	\Large $30.6\,\mathrm s$\\$\Downarrow$\\$7.6\,\mathrm s$\\\bf 4x faster
+		    	\Large $30.6\,\mathrm s$\\$\Downarrow$\\$7.6\,\mathrm s$\\\bf $4\times$ faster
 		    \end{center}
     	\end{textblock}
 	\end{frame}
@@ -190,6 +191,69 @@
 			\item Step size too large, everything bashed to ground before reacting
 			\item No self-intersection detection
 		\end{itemize}
+	\end{frame}
+	\begin{frame}{Problem: Shape Jitter - Observations}
+		\small
+		Damping does not really help.
+		
+		Reducing time-step size helps. For the previous setup:
+		
+		\begin{widecenter}
+			\begin{tabular}{cc}
+				$dt = 4\times10^{-4}\,\mathrm s$ & $dt = 2.5\times10^{-4}\,\mathrm s$  \\
+				\resvideo{4e-4}{4.59}{4.635} & 
+				\resvideo{2.5e-4}{4.59}{4.59}
+			\end{tabular}	
+		\end{widecenter}
+		
+		Compared to initial time step size $5\times10^{-3}\,\mathrm s$. This takes $20\times$ more computational time! Almost unacceptable.
+	\end{frame}
+	\begin{frame}{Adaptive Time Stepping}
+		\small
+		``Adaptive Time Stepping'' in the assigned reading gave us some inspiration.
+		
+		When the time step is found too large by some criteria. We reduce the step size and try again. When appropriate, step size in increased again.
+		
+		\textbf{$\Delta v$-based adaptive time stepping}\\
+		They use a $\Delta x$ threshold as criteria for deciding time steps. As our bulk velocity is high, we use the $\Delta v$ threshold instead.\\
+		\textit{Not very effective:} Only saves $20\%$ steps. The oscillation also gives rapidly changing local velocity, we cannot distinguish the ``bashing''. 
+		
+		\textbf{Contact-based adaptive time stepping}\\
+		Use small step when in contact with the surface. Otherwise use large step.\\
+		\textit{Not very effective:} Not flexible enough (only two step sizes); step size is small even when resting on the surface.
+	\end{frame}
+	\begin{frame}{Adaptive Time Stepping}
+%		\begin{textblock}{0.3}[1,0](0.95,0.2)
+%			\includegraphics[width=\textwidth]{res/branches.png}
+%		\end{textblock}
+		\begin{minipageparskip}{0.45\textwidth}
+			\small
+			\textbf{Reaction force-based adaptive time stepping}
+			
+			Step size should be inverse proportional to the maximum nodal reaction force from the ground.
+		We use $F_{max}dt \leq 0.01\,\mathrm{N\cdot s}$ as the criteria for previous setup.
+		
+			Instead of ``decreasing by half, increasing by doubling'' (as used in the paper), we examine $\frac{F_{max}dt}{0.01\,\mathrm{N\cdot s}}$ to decide how much we should increase/decrease.
+		\end{minipageparskip}%
+		\hspace{0.05\textwidth}%
+		\begin{minipageparskip}{0.5\textwidth}
+			\tiny
+			\hfill
+			\begin{tikzpicture}
+				\begin{axis}[width=6cm,height=4cm,xlabel={$t$ [$\mathrm s$]},ylabel={$F_{max}$ [$\mathrm N$]},xmax=0.1]
+					\addplot[black] table [x=t, y=f, col sep=comma, mark=none] {res/f-vs-dt.csv};
+					%\addplot {sqrt(x)};
+				\end{axis}
+			\end{tikzpicture}
+			
+			\hfill
+			\begin{tikzpicture}
+				\begin{axis}[width=6cm,height=4cm,xlabel={$t$ [$\mathrm s$]},ylabel={$dt$ [$\mathrm s$]},xmax=0.1]
+					\addplot[black] table [x=t, y=dt, col sep=comma, mark=none] {res/f-vs-dt.csv};
+				%\addplot {sqrt(x)};
+				\end{axis}
+			\end{tikzpicture}
+		\end{minipageparskip}
 	\end{frame}
 	\begin{frame}{Project on GitHub now!}
 		All code, results (and these slides) uploaded to

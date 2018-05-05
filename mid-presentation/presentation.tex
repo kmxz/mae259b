@@ -209,23 +209,30 @@
 		Compared to initial time step size $5\times10^{-3}\,\mathrm s$. This takes $20\times$ more computational time! Almost unacceptable.
 	\end{frame}
 	\begin{frame}{Adaptive Time Stepping}
-		\small
 		``Adaptive Time Stepping'' in the assigned reading gave us some inspiration.
 		
-		When the time step is found too large by some criteria. We reduce the step size and try again. When appropriate, step size in increased again.
+		When the time step is found too large by some criteria. We reduce the step size and try again. 
 		
-		\textbf{$\Delta v$-based adaptive time stepping}\\
-		They use a $\Delta x$ threshold as criteria for deciding time steps. As our bulk velocity is high, we use the $\Delta v$ threshold instead.\\
+		When the adverse conditions are gone, step size in increased again.
+		
+		\begin{center}
+			\includegraphics[width=0.4\textwidth]{res/branches.png}
+		\end{center}
+	\end{frame}
+	\begin{frame}{Adaptive Time Stepping}
+		\textbf{$\Delta v$-based adaptive time stepping}
+		
+		They use a $\Delta x$ threshold as criteria for deciding time steps. As our bulk velocity is high, we use the $\Delta v$ threshold instead.
+		
 		\textit{Not very effective:} Only saves $20\%$ steps. The oscillation also gives rapidly changing local velocity, we cannot distinguish the ``bashing''. 
 		
-		\textbf{Contact-based adaptive time stepping}\\
-		Use small step when in contact with the surface. Otherwise use large step.\\
+		\textbf{Contact-based adaptive time stepping}
+		
+		Use small step when in contact with the surface. Otherwise use large step.
+		
 		\textit{Not very effective:} Not flexible enough (only two step sizes); step size is small even when resting on the surface.
 	\end{frame}
 	\begin{frame}{Adaptive Time Stepping}
-%		\begin{textblock}{0.3}[1,0](0.95,0.2)
-%			\includegraphics[width=\textwidth]{res/branches.png}
-%		\end{textblock}
 		\begin{minipageparskip}{0.45\textwidth}
 			\small
 			\textbf{Reaction force-based adaptive time stepping}
@@ -235,8 +242,7 @@
 		
 			Instead of ``decreasing by half, increasing by doubling'' (as used in the paper), we examine $\frac{F_{max}dt}{0.008\,\mathrm{N\cdot s}}$ to decide how much we should increase/decrease.
 		\end{minipageparskip}%
-		\hspace{0.05\textwidth}%
-		\begin{minipageparskip}{0.5\textwidth}
+		\begin{minipageparskip}{0.55\textwidth}
 			\tiny
 			\hfill
 			\begin{tikzpicture}
@@ -256,7 +262,20 @@
 	\begin{frame}{Adaptive Time Stepping}
 		For a $2\,\mathrm s$ simulation, only $487$ steps attempted, resulting in $437$ valid steps. 
 		
-		Compared to $400$ steps (uniform $dt$ which results in shape jitter), we only need $\sim20\%$ more steps, instead of $\sim2000\%$.
+		Compared to $400$ steps (initial setup $dt = 5\times10^{-3}\,\mathrm s$), we only need $\sim20\%$ more steps, instead of $\sim2000\%$.
+		
+		\begin{widecenter}
+			\resvideo{ats}{5.695}{4.635}
+			\resvideo{ats-slow}{5.155}{4.635}
+		\end{widecenter}
+	\end{frame}
+	\begin{frame}{What's next}
+		\begin{itemize}
+			\item Take surface friction into consideration
+			\item Self-intersection prevention
+			\item Compare with results from literature
+			\item 3-D sphere (with discrete shells)
+		\end{itemize}
 	\end{frame}
 	\begin{frame}{Project on GitHub now!}
 		All code, results (and these slides) uploaded to

@@ -95,8 +95,6 @@ MAE259B.init = () => {
                             frame.points = output;
                             delete frame.data;
                         });
-                        const first02 = data.frames.findIndex(entry => entry.time > 0.2);
-                        data.frames.splice(first02);
 
                         MAE259B.setTc(el$title, title);
                         el$welcome.style.display = 'none';

@@ -29,17 +29,14 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     rodTexture.rotation = meta.closed ? 0 : Math.PI / 2;
     const material = new THREE.MeshLambertMaterial(Object.assign(USE_IMAGE_FOR_RING ? { map: rodTexture } : { color: 0x2962FF }, {
         wireframe: options.showNodes,
-        opacity: options.showNodes ? 0.25 : 1
+        opacity: options.showNodes ? 0.5 : 1,
+        transparent: options.showNodes
     }));
 
     const scene = new THREE.Scene();
     scene.add(new THREE.Mesh(geometry, material));
     scene.add(new THREE.AmbientLight(0xffffff, 1));
-    scene.add(new THREE.DirectionalLight(0xffff00, 2));
-    // const thirdLight = new THREE.PointLight(0xffff00, 1);
-    // thirdLight.position.set((minX + maxX) / 2, maxY + (maxY - minY) * 0.25, 0);
-    // thirdLight.lookAt((minX + maxX) / 2, minY, 0);
-    // scene.add(thirdLight);
+    scene.add(new THREE.DirectionalLight(0xffff99, 2));
 
     const dotGeometry = options.showNodes ? new THREE.Geometry() : null;
     if (options.showNodes) {
@@ -53,7 +50,7 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     if (meta.ground) {
         const texture = new THREE.TextureLoader().load('static/book.jpg');
         texture.anisotropy = 32;
-        const gndMaterial = USE_IMAGE_FOR_GROUND ? new THREE.MeshBasicMaterial({ map: texture }) :  new THREE.MeshLambertMaterial({ color: 0x333366 });
+        const gndMaterial = USE_IMAGE_FOR_GROUND ? new THREE.MeshBasicMaterial({ map: texture }) :  new THREE.MeshBasicMaterial({ color: 0xCCCC66 });
         const gndGeometry = new THREE.PlaneGeometry((maxX - minX) * 1.5, (maxX - minX) * 1.5 * 1373 / 2082);
         const gndPlane = new THREE.Mesh(gndGeometry, gndMaterial);
         gndPlane.material.side = THREE.DoubleSide;
@@ -74,7 +71,8 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     controls.update();
 
     const renderer = new THREE.WebGLRenderer({ canvas: el$canvas, antialias: true });
-    renderer.render(scene, camera);
+    renderer.autoClear = false;
+    const dtIndicator = options.showDt ? MAE259B.dtIndicator(frames) : null;
 
     let fIndexHigh = 1;
     const doAnimation = secondsElapsed => {
@@ -105,15 +103,24 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         geometry.needUpdate = true;
 
         MAE259B.setTc(el$display, 'Animating: t = ' + secondsElapsed.toFixed(3));
+        renderer.clear();
         renderer.render(scene, camera);
+        if (options.showDt) {
+            renderer.clearDepth();
+            dtIndicator.setFrameNumber(fIndexHigh);
+            renderer.render(dtIndicator.scene, dtIndicator.camera);
+        }
         return shouldRequestNextFrame;
     };
+    doAnimation(0); // initial render
+
     if (options.screenshotEvery) { // screenshot mode
         let currentTime = 0;
         const step = () => {
+            const fin = doAnimation(currentTime);
             saveScreenshot(currentTime).then(() => {
-                currentTime += options.screenshotEvery;
-                if (doAnimation(currentTime)) {
+                if (fin) {
+                    currentTime += options.screenshotEvery;
                     step();
                 } else {
                     window.alert('Finished. View screenshots directory for results.');
@@ -124,8 +131,11 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     } else { // animate mode
         document.body.classList.remove('not-playing');
         let animationActive = true;
-        let startTime = performance.now();
+        let startTime = null;
         const animate = time => {
+            if (!startTime) {
+                startTime = time; // must render t = 0 again
+            }
             let secondsElapsed;
             if (animationActive) {
                 secondsElapsed = (time - startTime) / 1000 * options.speed;
@@ -133,7 +143,7 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
                 secondsElapsed = frames[fIndexHigh].time;
             }
             if (!doAnimation(secondsElapsed)) { // loop again
-                startTime = time;
+                startTime = null;
                 fIndexHigh = 1;
             }
             requestAnimationFrame(animate);

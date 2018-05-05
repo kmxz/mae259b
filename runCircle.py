@@ -14,13 +14,13 @@ def runDER():
     nv = 24
 
     # max time step
-    max_dt = 1e-2
+    max_dt = 5e-3
 
     # min time step
     min_dt = 2e-4
 
-    # limit du per step
-    limit_du_per_step = 0.05
+    # limit f*dt per step
+    limit_f_times_dt = 0.01
 
     # initial center of circle
     x0 = [0.0, 0.50]
@@ -121,9 +121,7 @@ def runDER():
             Forces = Fb + Fs + Fg + Fp
 
             # Equation of motion
-            du = (qCurrentIterate - q0) / dt - u
-            maxDu = np.amax(np.abs(du))
-            f = m * du / dt - Forces
+            f = m * ((qCurrentIterate - q0) / dt - u) / dt - Forces
             fUncons = dofHelper.unconstrained_v(f)
 
             # Manipulate the Jacobians
@@ -147,17 +145,18 @@ def runDER():
                 break
             if iter > maximum_iter:
                 raise Exception('Cannot converge')
-        return qCurrentIterate, f, maxDu
+        return qCurrentIterate, f
 
     # Time marching
     ctime = 0
 
     outputData = [{'time': ctime, 'data': q0.tolist()}]
 
-    def checkMaxDuAndHackTimeIfNecessary(maxDu):  # check whether max-du is too large. if so, go back in time and reduce step size
+    def checkMaxDuAndHackTimeIfNecessary(reactionForces):  # check whether max-du is too large. if so, go back in time and reduce step size
         nonlocal dt, ctime
-        if (dt > min_dt) and (maxDu > limit_du_per_step):  # du too large!
-            relax_ratio = limit_du_per_step / maxDu  # we may contract dt by this ratio. but to be efficient, we don't contract that much
+        maxF = np.amax(reactionForces)
+        if (dt > min_dt) and (maxF * dt > limit_f_times_dt):  # du too large!
+            relax_ratio = limit_f_times_dt / maxF / dt  # we may contract dt by this ratio. but to be efficient, we don't contract that much
             dt = max((0.3 * relax_ratio + 0.45) * dt, min_dt)
             print('Reducing dt and recompute')
             return True
@@ -169,8 +168,8 @@ def runDER():
         print('t = %f, dt = %f' % (ctime, dt))
         steps_attempted += 1
 
-        qNew, reactionForces, maxDu = objfun(q0)
-        if checkMaxDuAndHackTimeIfNecessary(maxDu):
+        qNew, reactionForces = objfun(q0)
+        if checkMaxDuAndHackTimeIfNecessary(reactionForces):
             continue
 
         dofHelperBackup = deepcopy(dofHelper)  # in case we need to go back in time, we'll need to restore original dof configuration
@@ -180,8 +179,8 @@ def runDER():
         if needToFree:
             dofHelper.unconstraint(needToFree)
             print('Contact condition updated. Remove constraints and recompute')
-            qNew, reactionForces, maxDu = objfun(q0)
-        if checkMaxDuAndHackTimeIfNecessary(maxDu):
+            qNew, reactionForces = objfun(q0)
+        if checkMaxDuAndHackTimeIfNecessary(reactionForces):
             dofHelper = dofHelperBackup
             continue
 
@@ -199,9 +198,9 @@ def runDER():
                 break
             else:
                 print('Contact condition violated. Add constraints and recompute')
-                qNew, reactionForces, maxDu = objfun(q0Effective)
+                qNew, reactionForces = objfun(q0Effective)
 
-        if checkMaxDuAndHackTimeIfNecessary(maxDu):
+        if checkMaxDuAndHackTimeIfNecessary(reactionForces):
             dofHelper = dofHelperBackup
             continue
 
@@ -211,11 +210,11 @@ def runDER():
         # Update x0
         q0 = qNew
 
-        output = {'time': ctime, 'data': q0.tolist()}
+        output = {'time': ctime, 'data': q0.tolist(), 'maxF': np.amax(reactionForces)}
         outputData.append(output)
 
-        if (dt < max_dt) and (maxDu < limit_du_per_step):
-            relax_ratio = limit_du_per_step / maxDu  # we may relax dt by this ratio. but to be conservative, we don't relax that much
+        relax_ratio = limit_f_times_dt / np.amax(reactionForces) / dt
+        if (dt < max_dt) and (relax_ratio > 1):
             dt = min((0.6 * relax_ratio + 0.4) * dt, max_dt)
             print('Increasing dt')
 

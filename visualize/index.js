@@ -107,9 +107,10 @@ MAE259B.init = () => {
                         MAE259B.setTc(el$title, title);
                         el$welcome.style.display = 'none';
                         const buttons = {};
-                        ['backward', 'forward', 'play', 'reset'].forEach(name => {
+                        ['backward', 'forward', 'play', 'reset', 'close'].forEach(name => {
                             buttons[name] = document.getElementById(name + '-btn');
                         });
+                        buttons.close.addEventListener('click', () => window.location.reload());
                         MAE259B.render(data, options, { saveScreenshot, el$canvas, el$display, buttons });
                     });
                 }

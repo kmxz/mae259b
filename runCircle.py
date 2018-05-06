@@ -12,37 +12,37 @@ from getFs import getFs
 
 def runDER():
     # number of vertices
-    nv = 24
+    nv = 32
 
     # max time step
-    max_dt = 4e-3
+    max_dt = 5e-3
 
     # min time step
-    min_dt = 2e-4
+    min_dt = 1.5e-4
 
     # limit f*dt per step
-    limit_f_times_dt = 0.0025
+    limit_f_times_dt = 0.001
 
     # initial center of circle
-    x0 = [0.0, 0.50]
+    x0 = [0.0, 1.00]
 
     # inflation pressure (N/m)
-    InflationPressure = 10.0
+    InflationPressure = 160
 
     # circle radius
-    CircleRadius = 0.20
+    CircleRadius = 0.15
 
     # circumference length
     CircumferenceLength = 2 * pi * CircleRadius
 
     # Density
-    rho = 500.0
+    rho = 1000.0
 
     # Cross-sectional radius of rod
-    r0 = 5e-3
+    r0 = 3.25e-3
 
     # Young's modulus
-    Y = 5e6
+    Y = 1e7
 
     # gravity
     g = [0.0, -9.81]
@@ -54,7 +54,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 2
+    totalTime = 2.5
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
@@ -97,8 +97,8 @@ def runDER():
 
     u = np.zeros(2 * nv)
     for c in range(nv):
-        u[2 * c] = -0.5
-        u[2 * c + 1] = -15.0
+        u[2 * c] = -2.5
+        u[2 * c + 1] = -7.5
 
     reactionForces = np.zeros(2 * nv)
 

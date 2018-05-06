@@ -49,6 +49,7 @@
         <nav class="navbar navbar-dark bg-primary">
             <span class="navbar-brand" id="title">MAE 259B / Group 2: DER</span>
             <form class="form-inline">
+                <button type="button" class="btn btn-light hide-when-not-play" id="close-btn" title="Exit animation"><i class="material-icons">close</i></button>
                 <button type="button" class="btn btn-light hide-when-not-play" id="reset-btn" title="Reset camera"><i class="material-icons">videocam</i></button>
                 <button type="button" class="btn btn-light hide-when-not-play" id="play-btn" title="Resume playback"><i class="material-icons">play_arrow</i></button>
                 <button type="button" class="btn btn-light hide-when-not-play" id="backward-btn" title="One time-step back"><i class="material-icons">skip_previous</i></button>
@@ -65,7 +66,7 @@
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item">Latest web browser (e.g. Chrome ≥ 50) is needed to display.</li>
                             <li class="list-group-item">You can rotate, zoom or pan the viewport using mouse.</li>
-                            <li class="list-group-item">See <a href="https://github.com/kmxz/mae259b-project">GitHub</a> for source</li>
+                            <li class="list-group-item">See <a href="https://github.com/kmxz/mae259b-project">GitHub</a> for source (and star the project)!</li>
                         </ul>
                     </div>
                     <div class="card mt-4">
@@ -103,7 +104,7 @@
                                 <div class="form-group row">
                                     <div class="col-6">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="animopt-shadow">
+                                            <input class="form-check-input" type="checkbox" id="animopt-shadow" checked>
                                             <label class="form-check-label" for="animopt-shadow">Show shadow</label>
                                         </div>
                                     </div>

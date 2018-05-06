@@ -8,7 +8,6 @@
 
 \usepackage{luatex85}
 \usepackage{graphicx}
-\usepackage{qrcode}
 
 \usepackage{mathtools}
 \mathtoolsset{showonlyrefs}
@@ -54,7 +53,7 @@
         	 \hspace{2cm}
         	 \resvideo{hw-nodes}{4.0073}{3.3927}
         \end{center}
-	    \tiny{Not all PDF viewers can play videos. If not playable here, the videos can be found at \url{https://github.com/kmxz/mae259b-project/tree/master/mid-presentation/video}}.
+	    \tiny{Not all PDF viewers can play videos. If not playable here, the videos can be found at \url{https://github.com/kmxz/mae259b/tree/master/mid-presentation/video}}.
     \end{frame}
     \begin{frame}{What we did - Performance optimization}
     	Profiling shows $90\%$ of time is spent on calculating $F$ and $J$.
@@ -305,7 +304,7 @@
 		However, convergence is possible with an approximation, using $\mathrm{sign}(u_{t=t_{k-1}})$ instead of $\mathrm{sign}(u_{t=t_k})$.
 		
 		\begin{center}
-			\resvideo{friction}{8.1}{5.562}
+			\resvideo{friction}{7.824}{5.598}
 		\end{center}
 	\end{frame}
 	\begin{frame}{What's next}
@@ -318,11 +317,13 @@
 	\end{frame}
 	\begin{frame}{Project on GitHub now!}
 		All code, results (and these slides) uploaded to
-		
 		\begin{center}
-			\url{https://github.com/kmxz/mae259b-project}
-			
-			\qrcode[height=2.75cm]{https://github.com/kmxz/mae259b-project}
+			\url{https://github.com/kmxz/mae259b}
+		\end{center}
+	
+		See our results interactively at
+		\begin{center}
+			\url{https://kmxz.github.io/mae259b/}
 		\end{center}
 	\end{frame}
 \end{document}

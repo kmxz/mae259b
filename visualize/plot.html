@@ -12,7 +12,7 @@
 <body>
 <div id="plot"></div>
 <script type="text/javascript">
-    fetch('/data/' + window.location.search.substr(1)).then(res => res.json()).then(({ frames }) => {
+    fetch('../data/' + window.location.search.substr(1)).then(res => res.json()).then(({ frames }) => {
         Plotly.newPlot('plot', [{
             x: frames.map(_ => _.time),
             y: frames.map((_, idx) => (idx === 0) ? 0 : (_.time - frames[idx - 1].time)),

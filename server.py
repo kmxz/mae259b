@@ -8,7 +8,7 @@ from aiohttp.web import Response
 
 
 async def index(request):
-    html = open('visualize/index.html', 'r')
+    html = open('index.html', 'r')
     content = html.read()
     html.close()
     return Response(text=content, content_type='text/html')
@@ -35,7 +35,7 @@ app = web.Application()
 app.on_response_prepare.append(on_prepare)
 app.router.add_route('GET', '/', index)
 app.router.add_static('/data', 'data')
-app.router.add_static('/static', 'visualize')
+app.router.add_static('/visualize', 'visualize')
 app.router.add_route('GET', '/list', list)
 app.router.add_route('POST', '/save', file_upload)
 

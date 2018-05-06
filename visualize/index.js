@@ -22,7 +22,7 @@ MAE259B.init = () => {
             fd.append('id', currentId);
             fd.append('time', time.toFixed(3));
             fd.append('image', blob);
-            fetch('/save', {
+            fetch('save', {
                 method: 'POST',
                 body: fd
             }).then(response => response.text()).then(res).catch(rej);
@@ -31,7 +31,7 @@ MAE259B.init = () => {
 
     let jsonData = null;
 
-    fetch('/list?at=' + Date.now()).then(response => response.json()).then(dirs => {
+    fetch('list').then(response => response.json()).then(dirs => {
         const keys = Object.keys(dirs).sort();
         if (keys.length) {
             let selected = null;
@@ -44,7 +44,10 @@ MAE259B.init = () => {
                 if (dir) {
                     parent = document.createElement('li');
                     parent.className = 'list-group-item py-2';
-                    parent.appendChild(document.createTextNode(dir));
+                    const iconClose = document.createElement('i');
+                    iconClose.className = 'material-icons mr-1 folder-icon';
+                    parent.appendChild(iconClose);
+                    parent.appendChild(document.createTextNode(dir.replace(/^\/+/, '')));
                     fl.appendChild(parent);
                 }
                 const lis = dirs[dir].sort().map(entry => {

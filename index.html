@@ -19,21 +19,27 @@
             position: relative;
             z-index: 1;
         }
-        #file-list, #code-preview-row, body.guest #screenshot-pane {
-            display: none;
-        }
-        body.non-guest #default-hints {
+        #file-list, #code-preview-row, body.guest #screenshot-pane, body.non-guest #default-hints {
             display: none;
         }
         body.not-playing .hide-when-not-play {
             visibility: hidden;
         }
+        .material-icons {
+            vertical-align: middle;
+        }
+        .folder-icon::before {
+            content: 'folder';
+        }
+        .text-muted .folder-icon::before {
+            content: 'folder_open';
+        }
     </style>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.min.js"></script>
     <script type="text/javascript" src="https://cdn.rawgit.com/mrdoob/three.js/r92/examples/js/controls/OrbitControls.js"></script>
-    <script type="text/javascript" src="static/index.js"></script>
-    <script type="text/javascript" src="static/render.js"></script>
-    <script type="text/javascript" src="static/utils.js"></script>
+    <script type="text/javascript" src="visualize/index.js"></script>
+    <script type="text/javascript" src="visualize/render.js"></script>
+    <script type="text/javascript" src="visualize/utils.js"></script>
 </head>
 <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', MAE259B.init);

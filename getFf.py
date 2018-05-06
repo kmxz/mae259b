@@ -20,6 +20,5 @@ def getFf(u, nv, dofHelper, reactionForces, coeff):
             continue
         v = u[c - 1]
         Ff[c - 1] = - coeff * sign(v) * rF
-        Jf[c - 1, c - 1] = 0
 
     return Ff, Jf

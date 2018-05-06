@@ -106,7 +106,7 @@ def runDER():
     dt = max_dt
 
     def objfun(q0WithAdditionalConstraintsApplied):
-        mMat = np.diag(dofHelper.unconstrained_v(m))
+        mMat = np.diag(m)
 
         qCurrentIterate = q0WithAdditionalConstraintsApplied.copy()
         qUncons = dofHelper.unconstrained_v(qCurrentIterate)
@@ -131,13 +131,11 @@ def runDER():
 
             # Manipulate the Jacobians
             Jelastic = Jb + Js
-            Jelastic = dofHelper.unconstrained_m(Jelastic)
             Jexternal = Jp + Jf
-            Jexternal = dofHelper.unconstrained_m(Jexternal)
             J = mMat / dt ** 2 - Jelastic - Jexternal
 
             # Newton's update
-            qUncons = qUncons - np.linalg.solve(J, fUncons)
+            qUncons = qUncons - np.linalg.solve(dofHelper.unconstrained_m(J), fUncons)
             dofHelper.write_unconstrained_back(qCurrentIterate, qUncons)
 
             # Get the norm
@@ -216,7 +214,7 @@ def runDER():
         # Update x0
         q0 = qNew
 
-        output = {'time': ctime, 'data': q0.tolist(), 'maxF': np.amax(reactionForces)}
+        output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
 
         relax_ratio = limit_f_times_dt / np.amax(reactionForces) / dt

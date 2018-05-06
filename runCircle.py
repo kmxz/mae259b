@@ -21,7 +21,7 @@ def runDER():
     min_dt = 2e-4
 
     # limit f*dt per step
-    limit_f_times_dt = 0.005
+    limit_f_times_dt = 0.0025
 
     # initial center of circle
     x0 = [0.0, 0.50]
@@ -94,12 +94,13 @@ def runDER():
 
     # Constrained dofs
     dofHelper = DofHelper(len(q0))
-    # dofHelper.constraint([1])
 
     u = np.zeros(2 * nv)
     for c in range(nv):
         u[2 * c] = -0.5
         u[2 * c + 1] = -15.0
+
+    reactionForces = np.zeros(2 * nv)
 
     # set dt as max at the beginning
     dt = max_dt
@@ -109,6 +110,8 @@ def runDER():
 
         qCurrentIterate = q0WithAdditionalConstraintsApplied.copy()
         qUncons = dofHelper.unconstrained_v(qCurrentIterate)
+
+        f = reactionForces
         # Newton-Raphson scheme
         iter = 0
         while True:
@@ -117,7 +120,7 @@ def runDER():
             Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
             Fg = m * garr
             Fp, Jp = getFp(qCurrentIterate, nv, refLen, InflationPressure)
-            Ff, Jf = getFf(qCurrentIterate, q0, nv, dt, dofHelper, 0.2)
+            Ff, Jf = getFf(u, nv, dofHelper, f, 0.5)
 
             Forces = Fb + Fs + Fg + Fp + Ff
 
@@ -222,7 +225,7 @@ def runDER():
             print('Increasing dt')
 
     print('Steps attempted: %d' % steps_attempted)
-    print('Steps succeeded: %d' % len(outputData))
+    print('Steps succeeded: %d' % (len(outputData) - 1))
 
     return {'meta': {'radius': r0, 'closed': True, 'ground': True}, 'frames': outputData}
 

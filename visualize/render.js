@@ -1,17 +1,12 @@
 MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$display, buttons }) => {
     const QUALITY_FACTOR = 2; // might be an INTERGER larger than 1, for adding intermediate nodes for rendering, use Catmull-Rom interpolation
-    const USE_IMAGE_FOR_GROUND = false; // true to use image for the ground-plane, instead of solid color
-    const USE_IMAGE_FOR_RING = true; // true to use image for the ground-plane, instead of solid color
 
     // start loading the texture images first, if needed
-    const rodMaterialConfig = USE_IMAGE_FOR_RING ? MAE259B.loadTexture('static/two.png').then(rodTexture => {
-        rodTexture.rotation = meta.closed ? 0 : Math.PI / 2;
-        return { map: rodTexture };
-    }) : Promise.resolve({ color: 0x2962FF });
-    const groundMaterialConfig = meta.ground ? (USE_IMAGE_FOR_GROUND ? MAE259B.loadTexture('static/book.png').then(texture => {
+    const rodTexture = MAE259B.loadTexture('static/two.png');
+    const groundMaterialConfig = meta.ground ? (options.noBook ? Promise.resolve({ color: 0xCCCC66 }) : MAE259B.loadTexture('static/book.jpg').then(texture => {
         texture.anisotropy = 32;
-        return { map: rodTexture };
-    }) : Promise.resolve({ color: 0xCCCC66 })) : Promise.resolve(null);
+        return { map: texture };
+    })) : Promise.resolve(null);
 
     const destWidth = el$canvas.parentNode.clientWidth;
     const destHeight = el$canvas.parentNode.clientHeight - el$canvas.previousElementSibling.clientHeight;
@@ -20,8 +15,6 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     el$canvas.style.display = 'block';
 
     const scene = new THREE.Scene();
-    scene.add(new THREE.AmbientLight(0xffffff, 1));
-    scene.add(new THREE.DirectionalLight(0xffff99, 2));
 
     let minX = Number.MAX_VALUE;
     let maxX = Number.MIN_VALUE;
@@ -38,9 +31,22 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     // configure the camera
     const cameraZ4Y = (maxY - minY + 4 * meta.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
     const cameraZ4X = ((maxX - minX + 4 * meta.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, Math.max(cameraZ4X, cameraZ4Y) / 4, 500);
-    const baseCameraPosition = new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, Math.max(cameraZ4X, cameraZ4Y));
+    const baseZ = Math.max(cameraZ4X, cameraZ4Y);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, baseZ / 1000, baseZ * 2000);
+    const baseCameraPosition = new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, baseZ);
     camera.position.set(baseCameraPosition.x, baseCameraPosition.y, baseCameraPosition.z);
+
+    scene.add(new THREE.AmbientLight(0xccccff, 0.75));
+    const pointLight = new THREE.PointLight(0xffff99, 0.75);
+    pointLight.position.set((minX + maxX) / 2, maxY + meta.radius + maxY - minY, 0);
+    if (options.shadow) {
+        pointLight.castShadow = true;
+        pointLight.shadow.mapSize.width = 1024;
+        pointLight.shadow.mapSize.height = 2048;
+        pointLight.shadow.camera.near = baseZ / 1000;
+        pointLight.shadow.camera.far = baseZ * 2000;
+    }
+    scene.add(pointLight);
 
     // orbit controls of the camera
     const controls = new THREE.OrbitControls(camera, el$canvas);
@@ -48,18 +54,24 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
     controls.saveState();
     controls.update();
 
-    Promise.all([rodMaterialConfig, groundMaterialConfig]).then(([rodMaterialParameter, groundMaterialParameter]) => {
+    Promise.all([rodTexture, groundMaterialConfig]).then(([rodMaterialTexture, groundMaterialParameter]) => {
         // everything's ready. start creating actual meshes
 
         // mesh: rod itself
         const sections = (frames[0].points.length - (meta.closed ? 0 : 1)) * QUALITY_FACTOR;
         const rodGeometry = new THREE.TubeBufferGeometry(path, sections, meta.radius, options.showNodes ? 12 : 24, meta.closed);
-        const rodMaterial = new THREE.MeshLambertMaterial(Object.assign(rodMaterialParameter, {
+        const rodMaterial = new THREE.MeshLambertMaterial({
+            map: rodMaterialTexture,
             wireframe: options.showNodes,
             opacity: options.showNodes ? 0.5 : 1,
             transparent: options.showNodes
-        }));
-        scene.add(new THREE.Mesh(rodGeometry, rodMaterial));
+        });
+        rodMaterial.emissive = new THREE.Color(0xffffff);
+        rodMaterial.emissiveMap = rodMaterialTexture;
+        rodMaterial.emissiveIntensity = 0.25;
+        const rod = new THREE.Mesh(rodGeometry, rodMaterial);
+        rod.castShadow = options.shadow;
+        scene.add(rod);
 
         // mesh: nodes (if showNodes is enabled)
         const dotGeometry = options.showNodes ? new THREE.Geometry() : null;
@@ -74,8 +86,10 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         // mesh: ground (if ground is enabled)
         if (meta.ground) {
             const gndGeometry = new THREE.PlaneGeometry((maxX - minX) * 1.5, (maxX - minX) * 1.5 * 1373 / 2082);
-            const gndPlane = new THREE.Mesh(gndGeometry, new THREE.MeshBasicMaterial(groundMaterialParameter));
-            gndPlane.material.side = THREE.DoubleSide;
+            const gndMaterial = new THREE.MeshLambertMaterial(Object.assign({}, groundMaterialParameter));
+            gndMaterial.side = THREE.DoubleSide;
+            const gndPlane = new THREE.Mesh(gndGeometry, gndMaterial);
+            gndPlane.receiveShadow = options.shadow;
             gndPlane.position.set((minX + maxX) / 2, - meta.radius, 0);
             gndPlane.lookAt(new THREE.Vector3((minX + maxX) / 2, 1, 0));
             scene.add(gndPlane);
@@ -83,6 +97,10 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
 
         // initiate the renderer
         const renderer = new THREE.WebGLRenderer({ canvas: el$canvas, antialias: true });
+        if (options.shadow) {
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+        }
         renderer.autoClear = false;
 
         const dtIndicator = options.showDt ? MAE259B.dtIndicator(frames) : null;

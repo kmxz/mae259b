@@ -3,8 +3,6 @@ MAE259B.setTc = (el, content) => el.replaceChild(document.createTextNode(content
 MAE259B.setUpAnimOptions = () => {
     const el$exaggerate = document.getElementById('animopt-exaggerate');
     const el$speed = document.getElementById('animopt-speed');
-    const el$showpoints = document.getElementById('animopt-showpoints');
-    const el$showdt = document.getElementById('animopt-showdt');
     const el$screenshotIndicator = document.getElementById('animopt-screenshot-indicator');
     const el$screenshot = document.getElementById('animopt-screenshot-interval');
     const map = input => Math.round(Math.exp(input.value * Math.log(100)) * 1000) / 1000;
@@ -24,8 +22,10 @@ MAE259B.setUpAnimOptions = () => {
     return () => ({
         exaggerateY: map(el$exaggerate),
         speed: map(el$speed),
-        showNodes: el$showpoints.checked,
-        showDt: el$showdt.checked,
+        showNodes: document.getElementById('animopt-showpoints').checked,
+        showDt: document.getElementById('animopt-showdt').checked,
+        shadow: document.getElementById('animopt-shadow').checked,
+        noBook: document.getElementById('animopt-nobook').checked,
         screenshotEvery: Math.max(parseFloat(el$screenshot.value) || 0, 0)
     });
 };

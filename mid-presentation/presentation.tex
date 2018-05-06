@@ -68,7 +68,7 @@
 	\end{frame}
 	\begin{frame}{What we did - Natural curvature}
 		\begin{minipageparskip}{0.5\textwidth}
-			When calculating bending energy, replace $\frac12EI(\phi_k)^2$ with $\frac12EI(\phi_k - \phi_{k0})^2$.
+			When calculating bending energy, replace $\frac12EI(\phi_i)^2$ with $\frac12EI(\phi_i - \phi_{k0})^2$.
 			
 			The formulas for calculating $F$ and $J$ need to be changed (do differentiation again).
 			
@@ -111,7 +111,7 @@
 	\begin{frame}{What we did - Inflation pressure}
 		\begin{widecenter}
 			\begin{tikzpicture}[scale=0.6, every node/.style={scale=0.875}]
-				\draw [very thick] (0,0) node [right] {$\underline x_k$} -- (-4,-2) node [left] {$\underline x_{k+1}$};
+				\draw [very thick] (0,0) node [right] {$\underline x_i$} -- (-4,-2) node [left] {$\underline x_{i+1}$};
 				\foreach \x in {0,...,10}
 				\draw[gray,-latex,thin] (\x / 2.5 - 4,\x / 5 - 2) -- (\x / 2.5 - 4 - 0.5,\x / 5 - 2 + 1);
 				\draw [gray,thin] (0 / 2.5 - 4 - 0.5,0 / 5 - 2 + 1) -- (10 / 2.5 - 4 - 0.5,10 / 5 - 2 + 1);
@@ -126,7 +126,7 @@
 			\end{tikzpicture}
 			\hspace{0.1cm}
 			\begin{tikzpicture}[scale=0.6, every node/.style={scale=0.875}]
-				\draw [very thick] (0,0) node [right] {$\underline x_k$} -- (-4,-2) node [left] {$\underline x_{k+1}$};
+				\draw [very thick] (0,0) node [right] {$\underline x_i$} -- (-4,-2) node [left] {$\underline x_{i+1}$};
 				\draw [gray,-latex,semithick] (0 / 2.5 - 4,0 / 5 - 2) -- (0 / 2.5 - 4 - 0.75,0 / 5 - 2 + 1.5) node [above] {$\frac{f}2 dl$};
 				\draw [gray,-latex,semithick] (10 / 2.5 - 4,10 / 5 - 2) -- (10 / 2.5 - 4 - 0.75,10 / 5 - 2 + 1.5) node [above] {$\frac{f}2 dl$};
 				\node [circle,fill,minimum size=2mm,inner sep=0pt] at (0,0) {};
@@ -134,7 +134,7 @@
 			\end{tikzpicture}
 		\end{widecenter}
 	
-		With $\underline x_k$ and $\underline x_{k+1}$, we can easily calculate force exerted on those two points. 
+		With $\underline x_i$ and $\underline x_{i+1}$, we can easily calculate force exerted on those two points. 
 		
 		As force is dependent on actual positions of nodes, we need to add the variation into the Jabobian matrix. We simply take derivatives on the forces.
 	\end{frame}
@@ -169,9 +169,9 @@
 	\begin{frame}{What we did - Damping}
 		Without damping, we have oscillations.
 		
-		Naïve damping $\underline F_{d,k} \propto -\underline v_k$ ruins bulk motion (as our bulk velocity is high)
+		Naïve damping $\underline F_{d,i} \propto -\underline u_i$ ruins bulk motion (as our bulk velocity is high)
 		
-		So we use velocity relative to center of mass: $\underline F_{d,k} \propto -(\underline v_k - \underline v_{cm})$
+		So we use velocity relative to center of mass: $\underline F_{d,i} \propto -(\underline u_i - \underline u_{cm})$
 		\vspace{0.5cm}
 		\begin{widecenter}
 			\begin{tabular}{ccc}
@@ -189,7 +189,7 @@
 		\end{widecenter}
 		\begin{itemize}
 			\item Step size too large, everything bashed to ground before reacting
-			\item No self-intersection detection
+			\item Self-intersection occurs
 		\end{itemize}
 	\end{frame}
 	\begin{frame}{Problem: Shape Jitter - Observations}
@@ -211,9 +211,9 @@
 	\begin{frame}{Adaptive Time Stepping}
 		``Adaptive Time Stepping'' in the assigned reading gave us some inspiration.
 		
-		When the time step is found too large by some criteria. We reduce the step size and try again. 
+		When the time step is found too large by some criteria, we reduce the step size and try again. 
 		
-		When the adverse conditions are gone, step size in increased again.
+		When the adverse conditions are gone, step size is increased again.
 		
 		\begin{center}
 			\includegraphics[width=0.4\textwidth]{res/branches.png}
@@ -270,15 +270,47 @@
 		\end{widecenter}
 	\end{frame}
 	\begin{frame}{Surface friction considered}
-		For all nodes in contact with the surface, a friction force proportional to its velocity is applied.
+		For all nodes in contact with the surface, a friction force proportional to its velocity is applied: $F_{f,i} \propto - u_{i}$.
+		
 		\begin{widecenter}
-			\resvideo{no-friction}{6.095}{4.635}
-			\resvideo{friction-0.2}{4.6}{4.635}
+			\resvideo{no-friction}{6.856875}{5.214375}
+			\resvideo{friction-0.2}{5.175}{5.214375}
 		\end{widecenter}
+	\end{frame}
+	\begin{frame}{More realistic friction}
+		\begin{minipageparskip}{0.5\textwidth}
+			\small
+			Model local friction be proportional to the local normal force: $F_{f,i} = -\mathrm{sign}(u_{i}) \mu F_{N,i}$.
+			
+			However, normal force is acquired after solving EOM. We don't know it when forming EOM with $F_{f,i}$.
+		\end{minipageparskip}%
+		\begin{minipageparskip}{0.5\textwidth}
+			\tiny
+			\begin{tikzpicture}
+				\begin{axis}[width=6cm,height=4cm,xlabel={$u$},ylabel={$\mathrm{sign}(u)$},xmin=-7.5,xmax=7.5,xtick={0},domain=-7.5:7.5]
+				\addplot[no marks, densely dotted] coordinates {(-7.5,-1) (0,-1) (0,1) (7.5,1)};
+				\addplot[no marks, samples=600] {2 / (1 + exp(-5 * x)) - 1};
+				\end{axis}
+			\end{tikzpicture}
+		\end{minipageparskip}
+	
+		\small
+		What if we use the normal force $F_{N}$ acquired in previous Newton-Raphson iteration?
+		\begin{itemize}
+			\item The result is still accurate when iteration converges.
+			\item However, convergence is not guaranteed, because we don't have a reliable $J_f$.
+		\end{itemize}
+	\end{frame}
+	\begin{frame}{More realistic friction}
+		However, convergence is possible with an approximation, using $\mathrm{sign}(u_{t=t_{k-1}})$ instead of $\mathrm{sign}(u_{t=t_k})$.
+		
+		\begin{center}
+			\resvideo{friction}{8.1}{5.562}
+		\end{center}
 	\end{frame}
 	\begin{frame}{What's next}
 		\begin{itemize}
-			\item Take surface friction into consideration
+			\item Better simulation of friction
 			\item Self-intersection prevention
 			\item Compare with results from literature
 			\item 3-D sphere (with discrete shells)

@@ -1,6 +1,11 @@
 const MAE259B = {};
 
 MAE259B.init = () => {
+    if (window.location.port !== '') {
+        document.body.classList.remove('guest');
+        document.body.classList.add('non-guest');
+    }
+
     const el$welcome = document.getElementById('welcome');
     const el$display = document.getElementById('display');
     const el$title = document.getElementById('title');

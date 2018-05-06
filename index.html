@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Console</title>
+    <title>MAE 259B Demostration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" type="text/css" href="https://stackpath.bootstrapcdn.com/bootswatch/4.1.0/cosmo/bootstrap.min.css" />
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
     <style type="text/css">
@@ -23,7 +24,8 @@
             display: none;
         }
         body.not-playing .hide-when-not-play {
-            visibility: hidden;
+            opacity: 0.25;
+            pointer-events: none;
         }
         .material-icons {
             vertical-align: middle;
@@ -48,27 +50,30 @@
     <div class="fullpage">
         <nav class="navbar navbar-dark bg-primary">
             <span class="navbar-brand" id="title">MAE 259B / Group 2: DER</span>
+            <span class="navbar-brand mr-0" id="display">Stopped</span>
             <form class="form-inline">
                 <button type="button" class="btn btn-light hide-when-not-play" id="close-btn" title="Exit animation"><i class="material-icons">close</i></button>
                 <button type="button" class="btn btn-light hide-when-not-play" id="reset-btn" title="Reset camera"><i class="material-icons">videocam</i></button>
                 <button type="button" class="btn btn-light hide-when-not-play" id="play-btn" title="Resume playback"><i class="material-icons">play_arrow</i></button>
                 <button type="button" class="btn btn-light hide-when-not-play" id="backward-btn" title="One time-step back"><i class="material-icons">skip_previous</i></button>
                 <button type="button" class="btn btn-light hide-when-not-play" id="forward-btn" title="One time-step forward"><i class="material-icons">skip_next</i></button>
-                <span class="navbar-brand ml-3 mr-0" id="display">Stopped</span>
             </form>
         </nav>
         <canvas id="canvas"></canvas>
         <div id="welcome" class="mb-5">
             <div class="row px-5">
                 <div class="col-sm-6">
-                    <div class="card mt-4" id="default-hints">
-                        <h5 class="card-header">Hints</h5>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item">Latest web browser (e.g. Chrome ≥ 50) is needed to display.</li>
-                            <li class="list-group-item">You can rotate, zoom or pan the viewport using mouse.</li>
-                            <li class="list-group-item">See <a href="https://github.com/kmxz/mae259b-project">GitHub</a> for source (and star the project)!</li>
-                        </ul>
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Load a previous result</h5>
+                            <p class="card-text">No saved result available.</p>
+                            <ul class="list-group list-group-flush mb-4" id="file-list">
+                            </ul>
+                        </div>
                     </div>
+                    <button class="btn btn-primary btn-block mt-4 disabled" id="start-button">Go</button>
+                </div>
+                <div class="col-sm-6">
                     <div class="card mt-4">
                         <div class="card-body">
                             <h5 class="card-title">Animation Options</h5>
@@ -118,6 +123,14 @@
                             </form>
                         </div>
                     </div>
+                    <div class="card mt-4" id="default-hints">
+                        <h5 class="card-header">Hints</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">Latest web browser (e.g. Chrome ≥ 50) is needed to display.</li>
+                            <li class="list-group-item">You can rotate, zoom or pan the viewport using mouse (or fingers).</li>
+                            <li class="list-group-item">See <a href="https://github.com/kmxz/mae259b-project">GitHub</a> for source (and star the project)!</li>
+                        </ul>
+                    </div>
                     <div class="card mt-4" id="screenshot-pane">
                         <div class="card-body">
                             <h5 class="card-title">Screenshot mode <span class="badge badge-pill badge-light" id="animopt-screenshot-indicator">off</span></h5>
@@ -129,17 +142,6 @@
                                 </div>
                                 <label for="animopt-screenshot-interval" class="col-1 col-form-label">s</label>
                             </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-block mt-4 disabled" id="start-button">Go</button>
-                </div>
-                <div class="col-sm-6">
-                    <div class="card mt-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Load a previous result</h5>
-                            <p class="card-text">No saved result available.</p>
-                            <ul class="list-group list-group-flush mb-4" id="file-list">
-                            </ul>
                         </div>
                     </div>
                 </div>

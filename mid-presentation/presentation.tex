@@ -8,6 +8,7 @@
 
 \usepackage{luatex85}
 \usepackage{graphicx}
+\usepackage{qrcode}
 
 \usepackage{mathtools}
 \mathtoolsset{showonlyrefs}
@@ -316,14 +317,18 @@
 		\end{itemize}
 	\end{frame}
 	\begin{frame}{Project on GitHub now!}
-		All code, results (and these slides) uploaded to
-		\begin{center}
-			\url{https://github.com/kmxz/mae259b}
-		\end{center}
+		\begin{minipageparskip}{0.675\textwidth}
+			All code, results (and these slides) uploaded to
 	
-		See our results interactively at
-		\begin{center}
-			\url{https://kmxz.github.io/mae259b/}
-		\end{center}
+			\url{https://github.com/kmxz/mae259b}
+		
+			See our results interactively at
+		
+			\url{https://kmxz.github.io/mae259b}
+		\end{minipageparskip}%
+		\hspace{0.025\textwidth}%
+		\begin{minipageparskip}{0.3\textwidth}
+			\qrcode[height=\textwidth]{https://kmxz.github.io/mae259b/}
+		\end{minipageparskip}
 	\end{frame}
 \end{document}

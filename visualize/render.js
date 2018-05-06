@@ -1,6 +1,8 @@
 MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$display, buttons }) => {
     const QUALITY_FACTOR = 2; // might be an INTERGER larger than 1, for adding intermediate nodes for rendering, use Catmull-Rom interpolation
 
+    MAE259B.setTc(el$display, 'Animating: t = 0.000');
+
     // start loading the texture images first, if needed
     const rodTexture = MAE259B.loadTexture('visualize/two.png');
     const groundMaterialConfig = meta.ground ? (options.noBook ? Promise.resolve({ color: 0xCCCC66 }) : MAE259B.loadTexture('visualize/book.jpg').then(texture => {

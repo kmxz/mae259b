@@ -50,7 +50,7 @@ MAE259B.init = () => {
                     parent.appendChild(document.createTextNode(dir.replace(/^\/+/, '')));
                     fl.appendChild(parent);
                 }
-                const lis = dirs[dir].sort().map(entry => {
+                const lis = dirs[dir].map(entry => {
                     const li = document.createElement('li');
                     li.className = 'list-group-item pl-5 py-2';
                     li.appendChild(document.createTextNode(entry));

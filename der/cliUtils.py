@@ -14,7 +14,7 @@ def cliRun(method):
         outputFileName = userDefinedName
     if not outputFileName.endswith('.json'):
         outputFileName += '.json'
-    fp = open('data/' + outputFileName, "w")
+    fp = open('../data/' + outputFileName, "w")
 
     code = inspect.getsource(method)
     start_timer = timer()

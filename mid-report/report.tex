@@ -1,0 +1,133 @@
+\documentclass[letterpaper,9pt]{article}
+\usepackage{amsmath}
+\usepackage{multicol}
+\setlength{\columnsep}{1cm}
+\usepackage{mathtools}
+\mathtoolsset{showonlyrefs}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage[cm]{fullpage}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\usepackage{hyperref}
+\bibliographystyle{acm}
+\begin{document}
+\begin{center}
+	\Large
+	Simulation of deformation and rebound of an inflated elastic ball 
+	 
+	Midterm progress report
+	
+	\vspace{1em}
+	\large
+	Siyuan Chen, Xiangzhou Kong, Long Chen
+\end{center}
+\vspace{1em}
+\begin{multicols}{2}
+	\section{Background}
+		The elasticity and pressure of an inflated ball have an impact on the sports games or other aspects. For example, the difficulty to catch a football passed by a quarterback; the distance a soccer ball can fly when kicked; the exact amount of force should be applied when a point guard is trying to make a bounce pass, etc. 
+		
+		To study the model of the ball bouncing can help us to predict and simulate how a elastic spherical body deforms and bounces through computing and simulation. 
+		A theoretical model for spherical ball bouncing has been established by Stronge \cite{Stronge06}, with the assumption that the ball shells are thin and the internal gas pressure is high enough such that the reaction due to shell bending is insignificant in comparison with the gas pressure. 
+		
+		However, the FEM analysis of Bao \cite{Bao15}, neglecting the internal gas pressure, only considered the bending of the shell when the ball gets stiffer. 
+		
+		With discrete simulation methods, it is possible for us to take both pressure and shell bending into consideration. Also, factors like friction due to the ground, reaction forces from the ground and damping coefficient are includes in our simulation. 
+	\section{Potential impact}
+		\textbf{Waiting for Siyuan to write this part}
+	\section{Methodology}
+		In current stage, we are using a 2-D circular structure to emulate a 3-D spherical shell. Discrete elastic rod \cite{Bergou08} methods are used for our simulation.	
+
+		\subsection{Time marching scheme}
+			Backward Euler method is used to march $\underline x$ starting from the initial position.
+			\subsubsection{Discrete rod formulation}
+				From Newton's second law, $ F_i = m_i\ddot q_i$, we develop:
+				\begin{align}
+					f_i = m_i\frac{q_i(t_{k+1}) - q_i(t_k)}{dt^2} - m_i\frac{\dot q_i(t_k)}{dt} + \frac{\partial}{\partial q_i}(E_i^b + E_i^s) - F_i^e
+				\end{align}
+				where, $f_i$, the reaction force, should be $0$ for each degree of freedoms that is not constrained.
+				
+				In this formulation,
+				\begin{itemize}
+					\item $E_i^b$ is the bending energy, defined as $\frac12 EI(\phi_i - \phi_{i0})^2 / dl$. This expression is derived in class;
+					\item $E_i^s$ is the stretching energy, defined as $\frac12 EA \epsilon_i^2 / dl$. This expression is derived in class;
+					\item $F_i^e$ is the external force, which will be discussed in later sections.
+				\end{itemize}
+			\subsubsection{Newton-Raphson iteration}
+				We use Newton-Raphson iteration to solve each time step:
+				\begin{align}
+					\underline q := \underline q - \underline{\underline J} / \underline{f}
+				\end{align}
+				where, $J$, the Jacobian, is calculated by $J_{ij} = \frac{\partial f_i}{\partial q_j}$
+				
+				The Jacobian is pre-computed with computer algebra system, leaving scalar parameters to be specified at run-time.
+		\subsection{Surface contact}
+			A predictor-corrector method is used to handle ground surface contact.
+			
+			Assume a ground surface at $y = 0$, When doing time-marching, on each time step:
+			\begin{enumerate}
+				\item Compute $\underline q(t)$ as before;
+				\item Check if there exists any $y$-direction DOF $i$ such that $q_i < 0$. If there is any, set it as a temporarily constrained DOF with $y = 0$, and recompute current time step;
+				\item Check if there exists any temporarily constrained DOF, such that the normal force between the surface and the node is negative (i.e. $f_i < 0$). Remove such temporary constraint, and recompute current time step.
+			\end{enumerate}
+		\subsection{Other forces}
+			External force $F_i^e = F_i^p + F_i^g + F_i^d + F_i^f$
+			\begin{itemize}
+				\item $F_i^p$ is discretized uniform force along rods, it is used to simulate inflation pressure effect of a 3-D ball;
+				\item $F_i^g$ a constant gravity force $F_i^g = m_ig$;
+				\item $F_i^d$ is damping force that may depends of $q_i$ and $\dot q_i$;
+				\item $F_i^f$ is frictional force that may depends of $q_i$ and $\dot q_i$.
+			\end{itemize}
+			\subsubsection{Damping}
+				Damping force can be used to remove unphysical oscillations from the structure.
+			
+				The most simple local damping force formation would be proportional to local velocity, i.e. $F_i = -cu_i$. However, as our structure may be translating in a high bulk-velocity, such damping force is not suitable.
+				
+				Using a damping force proportional to velocity is a good idea to remove unphysical oscillations. To get rid of the effect of high-velocity bulk motion, we simply subtract the bulk velocity, which is represented by the velocity of the center of mass, i.e. $F_i^s = -c(\underline u_{i} - \underline u_{cm})$.
+				
+				Clearly, when the circular structure is translating with is no shape changes, no parts of the structure will receive any damping force; damping forces are only applied when deformation actually happens. Since our structure is axisymmetric, the velocity relative to the center of mass would have the same effect for different nodes. 
+				
+				This damping force is found effective to reduce high-frequency oscillations in our results, without slowing down the buld motion.
+			\subsubsection{Friction}
+				Ideally, we expect frictional forces to follow $F_i^f = \mu f_i$, i.e. the discretized frictional force at each node is proportional to the normal force between the node and the ground surface.
+				
+				To reduce numerical instability and guarantee convergence, we use the following approximations:
+				\begin{itemize}
+					\item The velocity in last time step $\dot q(t_k)$ is used, instead of current velocity $\dot q(t_{k+1})$ (when calculating $F^f(t_{k+1})$);
+					\item Frictional force is reduced when velocity is very low
+				\end{itemize}
+		\subsection{Adaptive time stepping}
+			Adaptive time stepping is a effective way to achieve stability with relatively low cost \cite{Soderlind06}.
+			
+			Our adaptive scheme limits the momentum change per time step on each node. The momentum change is effectively calculated by the reaction force $f$ multiplied by time step size $dt$. Once the actual $fdt$ goes above our threshold, we reduce step size and recompute; when actual $fdt$ is below the threshold, we increase the step size. 
+			
+			We examine the ratio of actual $fdt$ can our threshold, to determine how much do we need to increase/decrease the step size. Instead of exactly following the ratio, we tend to be more conservative, so that we can reduce the number of retries.
+	\section{Results}
+		The objectives in our project proposal is largely finished.
+		
+		We are able to simulate a circular structure go under deformation with our code. Surface contact with friction is taken into consideration realistically. With surface friction, we can see a the structure rotates while it's bouncing on the ground surface.	
+		
+		Our assumption that a higher pressure will allow a ball to bounce higher is verified through the simulation.
+	\section{Tools and logistics}
+		Currently, we write the DER code in Python, and the library \href{http://www.numpy.org}{NumPy} is used for carrying out linear algebra. We may seek performance improvement by rewriting the code instead.
+		
+		The library \href{http://www.sympy.org/}{SymPy} is used for carrying out symbolic differentiation.
+		
+		We developed a visualization console for displaying our results, which is based on \href{https://threejs.org/}{Three.js}.	
+	\section{Challenges and ongoing work}
+		\subsection{Self-intersection prevention}
+			Under strong impact force and large deformation, our self-intersection is found to occur. Currently, we did not prevent the structure from self-intersection.
+			
+			Baraff \cite{Baraff98} described a solution of inserting a damped spring force to push nodes apart. It is also mentioned that a coherency-based bounding box
+			approach can be used to detect such self-intersection efficiently.
+		\subsection{3-D sphere with discrete shell}
+			After finishing the 2-D scenario, we are applying discrete shell methods to simulate a real 3-D spherical shell in the following month.
+			
+			There are a few challenges:
+			\begin{itemize}
+				\item Generate meshes that is suitable for discrete shell methods;
+				\item Reduce computational time
+			\end{itemize}
+	\bibliography{report}
+\end{multicols}
+\end{document}

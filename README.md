@@ -18,6 +18,7 @@ Files and directories
     - Other `.py` files are included modules. See the comments in the beginning of each file.
 - `data/`: generated data files (in JSON format).
 - `diff/`: carry out differentiation with SymPy to get gradients and hessians.
-- `mid-presentation/`: progress presentation.
+- `mid-presentation/`: midterm progress presentation.
+- `mid-report/`: midterm progress report.
 - `screenshots/`: directory for holding screenshots.
 - `visualize/`: resources for visualizing data in web browser.

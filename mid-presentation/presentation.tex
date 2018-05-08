@@ -145,8 +145,8 @@
 		Assume a surface at $y = 0$, When doing time-marching, on each time step	:
 		\begin{enumerate}
 			\item Compute $\underline q(t)$ as before;
-			\item Check if there exists any node whose $y < 0$. If there is any, set it as a temporarily constrained DOF with $y = 0$, and recompute current frame;
-			\item Check if there exists any temporarily constrained DOF, such that the normal \textit{force} between the surface and the node is negative. Remove such temporary constraint, and recompute current frame.
+			\item Check if there exists any node whose $y < 0$. If there is any, set it as a temporarily constrained DOF with $y = 0$, and recompute current time step;
+			\item Check if there exists any temporarily constrained DOF, such that the normal \textit{force} between the surface and the node is negative. Remove such temporary constraint, and recompute current time step.
 		\end{enumerate}
 		\begin{center}
 			\includegraphics[width=\textwidth]{res/force.png}

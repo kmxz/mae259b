@@ -224,7 +224,7 @@
 		
 		They use a $\Delta x$ threshold as criteria for deciding time steps. As our bulk velocity is high, we use the $\Delta v$ threshold instead.
 		
-		\textit{Not very effective:} Only saves $20\%$ steps. The oscillation also gives rapidly changing local velocity, we cannot distinguish the ``bashing''. 
+		\textit{Not very effective:} Only saves $20\%$ steps. The oscillation also gives rapidly changing local velocity, we cannot distinguish the ``bash'' against the ground. 
 		
 		\textbf{Contact-based adaptive time stepping}
 		
@@ -238,9 +238,9 @@
 			\textbf{Reaction force-based adaptive time stepping}
 			
 			Step size should be inverse proportional to the maximum nodal reaction force from the ground.\\
-			We use $F_{max}dt \leq 0.008\,\mathrm{N\cdot s}$ as the threshold for previous setup.
+			We use $F_{max}dt \leq 0.008\,\mathrm{N\cdot s}$ as the threshold for momentum change per step.
 		
-			Instead of ``decreasing by half, increasing by doubling'' (as used in the paper), we examine $\frac{F_{max}dt}{0.008\,\mathrm{N\cdot s}}$ to decide how much we should increase/decrease.
+			Instead of ``decreasing by half, increasing by double'' (as used in the paper), we examine $\frac{F_{max}dt}{0.008\,\mathrm{N\cdot s}}$ to decide how much we should increase/decrease.
 		\end{minipageparskip}%
 		\begin{minipageparskip}{0.55\textwidth}
 			\tiny
@@ -270,6 +270,8 @@
 		\end{widecenter}
 	\end{frame}
 	\begin{frame}{Surface friction considered}
+		Without friction, the structure does not rotate!
+		
 		For all nodes in contact with the surface, a friction force proportional to its velocity is applied: $F_{f,i} \propto - u_{i}$.
 		
 		\begin{widecenter}
@@ -302,7 +304,7 @@
 		\end{itemize}
 	\end{frame}
 	\begin{frame}{More realistic friction}
-		However, convergence is possible with an approximation, using $\mathrm{sign}(u_{t=t_{k-1}})$ instead of $\mathrm{sign}(u_{t=t_k})$.
+		However, convergence is generally achieved with an approximation, using $\mathrm{sign}(u_{t=t_{k-1}})$ instead of $\mathrm{sign}(u_{t=t_k})$.
 		
 		\begin{center}
 			\resvideo{friction}{7.824}{5.598}
@@ -311,9 +313,12 @@
 	\begin{frame}{What's next}
 		\begin{itemize}
 			\item Better simulation of friction
+			\item Air pressure changes due to deformation\\
+			{\footnotesize When the structure is heavily compressed, the internal volume is reduced dramatically, so the pressure should be dynamically updated.}
 			\item Self-intersection prevention\\
-			{\footnotesize ``When collisions between a cloth vertex and triangle, or two cloth edges are detected, we insert a strong damped spring force to push the cloth apart'' (Baraff 1998)} 
-			\item Compare with results from literature
+			{\footnotesize ``When collisions between a cloth vertex and triangle, or two cloth edges are detected, we insert a strong damped spring force to push the cloth apart.'' (Baraff 1998)} 
+			\item Compare with results from literature\\
+			{\footnotesize Rolling Ribbons (Raux 2010)}
 			\item 3-D sphere (with discrete shells)
 		\end{itemize}
 	\end{frame}

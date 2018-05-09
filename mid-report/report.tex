@@ -1,22 +1,26 @@
 \documentclass[letterpaper,9pt]{article}
+% content
 \usepackage{amsmath}
-\usepackage{multicol}
-\setlength{\columnsep}{1cm}
+\usepackage{hyperref}
 \usepackage{mathtools}
 \mathtoolsset{showonlyrefs}
+\bibliographystyle{acm}
+% layout
+\usepackage[cm]{fullpage}
+\usepackage{multicol}
+\setlength{\columnsep}{1cm}
+% spacings
 \usepackage{setspace}
 \onehalfspacing
-\usepackage[cm]{fullpage}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{4pt}
-\usepackage{hyperref}
-\bibliographystyle{acm}
+\setlength{\parskip}{6pt}
+\usepackage[compact]{titlesec}
 \begin{document}
 \begin{center}
 	\Large
 	Simulation of deformation and rebound of an inflated elastic ball 
 	 
-	Midterm progress report
+	{\bf Midterm progress report}
 	
 	\vspace{1em}
 	\large
@@ -27,16 +31,15 @@
 	\section{Background}
 		The elasticity and pressure of an inflated ball have an impact on the sports games or other aspects. For example, the difficulty to catch a football passed by a quarterback; the distance a soccer ball can fly when kicked; the exact amount of force should be applied when a point guard is trying to make a bounce pass, etc. 
 		
-		To study the model of the ball bouncing can help us to predict and simulate how a elastic spherical body deforms and bounces through computing and simulation. 
-		A theoretical model for spherical ball bouncing has been established by Stronge \cite{Stronge06}, with the assumption that the ball shells are thin and the internal gas pressure is high enough such that the reaction due to shell bending is insignificant in comparison with the gas pressure. 
+		Studying the model of ball bouncing can help us to predict and simulate how a elastic spherical body deforms and bounces through computing and simulation. A theoretical model for spherical ball bouncing has been established by Stronge \cite{Stronge06}, with the assumption that ball shells are thin and the internal gas pressure is high enough such that the reaction due to shell bending is insignificant in comparison with the gas pressure. 
 		
-		However, the FEM analysis of Bao \cite{Bao15}, neglecting the internal gas pressure, only considered the bending of the shell when the ball gets stiffer. 
-		
-		With discrete simulation methods, it is possible for us to take both pressure and shell bending into consideration. Also, factors like friction due to the ground, reaction forces from the ground and damping coefficient are includes in our simulation. 
+		On the other hand, the FEM analysis of Bao \cite{Bao15}, neglecting the internal gas pressure, only considered the bending of the shell when the ball gets stiffer. 
 	\section{Potential impact}
-		\textbf{Waiting for Siyuan to write this part}
+		With discrete simulation methods, it is possible for us to take both gas pressure and shell bending into consideration. Moreover, factors like friction with the ground, other reaction forces from the ground, damping and aerodynamic drag can be included in our simulation. 
+	
+	    We utilized discrete elastic rod model for 2D analysis and simulation in phase 1 of this project. 3D discrete shell model will be utilized in phase 2 of this project. While the detailed methodology will be explained in the following section, this project including the algorithm can be a prototype of analysis and simulation of objects in reality with complex geometry. Also, the simulation of the mechanical behavior of flexible structures including elastic objects such as basketballs, tires or inelastic objects such as aluminum cans or hats can be applied to animation and computer-generated imagery in movies \cite{Grinspun08}.
 	\section{Methodology}
-		In current stage, we are using a 2-D circular structure to emulate a 3-D spherical shell. Discrete elastic rod \cite{Bergou08} methods are used for our simulation.	
+		In current stage, we are using a 2-D circular structure to emulate a 3-D spherical shell. Discrete elastic rods \cite{Bergou08} methods are used for our simulation.	
 
 		\subsection{Time marching scheme}
 			Backward Euler method is used to march $\underline x$ starting from the initial position.
@@ -58,7 +61,7 @@
 				\begin{align}
 					\underline q := \underline q - \underline{\underline J} / \underline{f}
 				\end{align}
-				where, $J$, the Jacobian, is calculated by $J_{ij} = \frac{\partial f_i}{\partial q_j}$
+				where, $J$, the Jacobian, is calculated by $J_{ij} = \frac{\partial f_i}{\partial q_j}$. The Jacobian is composed by the Hessian matrices of elastic energies in each section of the structure, and the Jacobian of different external forces that may depends on $\underline x$.
 				
 				The Jacobian is pre-computed with computer algebra system, leaving scalar parameters to be specified at run-time.
 		\subsection{Surface contact}
@@ -75,45 +78,45 @@
 			\begin{itemize}
 				\item $F_i^p$ is discretized uniform force along rods, it is used to simulate inflation pressure effect of a 3-D ball;
 				\item $F_i^g$ a constant gravity force $F_i^g = m_ig$;
-				\item $F_i^d$ is damping force that may depends of $q_i$ and $\dot q_i$;
-				\item $F_i^f$ is frictional force that may depends of $q_i$ and $\dot q_i$.
+				\item $F_i^d$ is damping force that may depends on $q_i$ and $\dot q_i$;
+				\item $F_i^f$ is frictional force that may depends on $q_i$ and $\dot q_i$.
 			\end{itemize}
 			\subsubsection{Damping}
 				Damping force can be used to remove unphysical oscillations from the structure.
 			
 				The most simple local damping force formation would be proportional to local velocity, i.e. $F_i = -cu_i$. However, as our structure may be translating in a high bulk-velocity, such damping force is not suitable.
 				
-				Using a damping force proportional to velocity is a good idea to remove unphysical oscillations. To get rid of the effect of high-velocity bulk motion, we simply subtract the bulk velocity, which is represented by the velocity of the center of mass, i.e. $F_i^s = -c(\underline u_{i} - \underline u_{cm})$.
+				Using a damping force proportional to velocity is a good idea to remove unphysical oscillations. To get rid of the effect of high-velocity bulk motion, we simply subtract the bulk velocity, which is represented by the velocity of the center of mass, i.e. $F_i^s = -c(u_{i} - u_{cm})$.
 				
 				Clearly, when the circular structure is translating with is no shape changes, no parts of the structure will receive any damping force; damping forces are only applied when deformation actually happens. Since our structure is axisymmetric, the velocity relative to the center of mass would have the same effect for different nodes. 
 				
-				This damping force is found effective to reduce high-frequency oscillations in our results, without slowing down the buld motion.
+				This damping force is found effective to reduce high-frequency oscillations in our results, without slowing down the bulk motion.
 			\subsubsection{Friction}
 				Ideally, we expect frictional forces to follow $F_i^f = \mu f_i$, i.e. the discretized frictional force at each node is proportional to the normal force between the node and the ground surface.
 				
 				To reduce numerical instability and guarantee convergence, we use the following approximations:
 				\begin{itemize}
-					\item The velocity in last time step $\dot q(t_k)$ is used, instead of current velocity $\dot q(t_{k+1})$ (when calculating $F^f(t_{k+1})$);
+					\item When calculating $F^f(t_{k+1})$, the velocity in last time step $\dot q(t_k)$ is used, instead of current velocity $\dot q(t_{k+1})$;
 					\item Frictional force is reduced when velocity is very low
 				\end{itemize}
 		\subsection{Adaptive time stepping}
-			Adaptive time stepping is a effective way to achieve stability with relatively low cost \cite{Soderlind06}.
+			Adaptive time stepping is a effective way to achieve stability with relatively low computational cost \cite{Soderlind06}.
 			
-			Our adaptive scheme limits the momentum change per time step on each node. The momentum change is effectively calculated by the reaction force $f$ multiplied by time step size $dt$. Once the actual $fdt$ goes above our threshold, we reduce step size and recompute; when actual $fdt$ is below the threshold, we increase the step size. 
+			Our adaptive scheme limits the momentum change per time step on each node. The momentum change is effectively calculated by the reaction force $f$ multiplied by time step size $dt$. Once the actual $fdt$ goes above our threshold, we decrease the step size and recompute; when actual $fdt$ is below the threshold, we increase the step size. 
 			
-			We examine the ratio of actual $fdt$ can our threshold, to determine how much do we need to increase/decrease the step size. Instead of exactly following the ratio, we tend to be more conservative, so that we can reduce the number of retries.
-	\section{Results}
-		The objectives in our project proposal is largely finished.
-		
-		We are able to simulate a circular structure go under deformation with our code. Surface contact with friction is taken into consideration realistically. With surface friction, we can see a the structure rotates while it's bouncing on the ground surface.	
-		
-		Our assumption that a higher pressure will allow a ball to bounce higher is verified through the simulation.
+			We examine the ratio of actual $fdt$ can our threshold, to determine how much do we need to increase/decrease the step size. Instead of exactly following the ratio, we tend to be more conservative when increasing the step size, so that we can reduce the number of retries due to over-aggressive step sizes.		
 	\section{Tools and logistics}
-		Currently, we write the DER code in Python, and the library \href{http://www.numpy.org}{NumPy} is used for carrying out linear algebra. We may seek performance improvement by rewriting the code instead.
+		Currently, we write the DER code in Python, and the library \href{http://www.numpy.org}{NumPy} is used for carrying out linear algebra. We may seek performance improvement by rewriting the code in C++ instead.
 		
 		The library \href{http://www.sympy.org/}{SymPy} is used for carrying out symbolic differentiation.
 		
 		We developed a visualization console for displaying our results, which is based on \href{https://threejs.org/}{Three.js}.	
+	\section{Results}
+		The objectives in our project proposal is largely finished.
+		
+		We are able to simulate a circular structure go under deformation with our code. Pressure and damping forces are taken into account and produced physically sensible results. Surface contact with friction is taken into consideration realistically. With surface friction, the rotation while bouncing is well simulated.
+		
+		Our assumption that a higher pressure will allow a ball to bounce higher is verified by the simulation.
 	\section{Challenges and ongoing work}
 		\subsection{Self-intersection prevention}
 			Under strong impact force and large deformation, our self-intersection is found to occur. Currently, we did not prevent the structure from self-intersection.
@@ -121,13 +124,19 @@
 			Baraff \cite{Baraff98} described a solution of inserting a damped spring force to push nodes apart. It is also mentioned that a coherency-based bounding box
 			approach can be used to detect such self-intersection efficiently.
 		\subsection{3-D sphere with discrete shell}
-			After finishing the 2-D scenario, we are applying discrete shell methods to simulate a real 3-D spherical shell in the following month.
+			After finishing the 2-D scenario, we are going to apply discrete shell methods to simulate a real 3-D spherical shell in the following month.
 			
 			There are a few challenges:
 			\begin{itemize}
-				\item Generate meshes that is suitable for discrete shell methods;
-				\item Reduce computational time
+				\item Generating meshes for ball that are suitable for discrete shell methods;
+				\item Reducing computational time when the number of nodes are huge.
 			\end{itemize}
+		\subsection{Fluid-structure interaction}
+			Fluid-structure interaction will be relevant in two different ways:
+			\begin{itemize}
+				\item Internal inflation pressure: for a ball, when the internal volume is changed due to shell deformation, the internal air pressure will no longer be constant. However, the air compression is not necessarily isentropic, and the relationship between volume and pressure will be complicated and path-dependent.
+				\item External drag force: when a ball is flying in the air, aerodynamic drag force is not alway negligible. Considering the ball might be spinning, this can be relatively complicated.
+			\end{itemize}		
 	\bibliography{report}
 \end{multicols}
 \end{document}

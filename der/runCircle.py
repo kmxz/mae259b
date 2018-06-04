@@ -1,13 +1,14 @@
+import math
 from math import pi, sin, cos
-from copy import deepcopy
 import numpy as np
 
 from cliUtils import cliRun
 from dofHelper import DofHelper
 from getFb import getFb
-from getFf import getFf
 from getFp import getFp
 from getFs import getFs
+from slopeUtils import nWall, slopeWall, thetaNormal, invMass
+from timeIntegration import timeIntegration
 
 
 def runDER():
@@ -100,56 +101,85 @@ def runDER():
         u[2 * c] = -2.5
         u[2 * c + 1] = -7.5
 
-    reactionForces = np.zeros(2 * nv)
-
     # set dt as max at the beginning
     dt = max_dt
 
-    def objfun(q0WithAdditionalConstraintsApplied):
-        mMat = np.diag(m)
+    def objfunBW(q, uProjected):
+        mMatInv = np.diag(1 / m)
+        Ident2nv = np.eye(2 * nv)
+        imposedAcceleration = np.zeros((2 * nv, 1))
 
-        qCurrentIterate = q0WithAdditionalConstraintsApplied.copy()
-        qUncons = dofHelper.unconstrained_v(qCurrentIterate)
+        # Figure out the imposed acceleration
+        for c in range(nv):
+            xPos = q0[2 * c]
+            # Case 1: both dofs are constrained
+            if dofHelper.mapCons[2 * c] == 1 and dofHelper.mapCons[2 * c + 1] == 1:
+                uProjectedPoint = uProjected[2 * c: 2 * c + 1]
+                uPerp = np.dot(nWall(xPos), uProjectedPoint) * nWall(xPos)
+                normU = np.linalg.norm(uPerp)
+                if normU < (CircumferenceLength / 9.81) * 1e-3: # very small
+                    normUinv = 0
+                else:
+                    normUinv = 1 / normU
+                dY = q0[2 * c + 1] - slopeWall(xPos) * q0[2 * c] # always a positive value
+                dRDesired = dY * math.sin(thetaNormal(xPos))
+                tpseudo = dRDesired * normUinv
+                q0Point = np.array([[q0[2 * c]], [q0[2 * c + 1]]])
+                u0Point = np.array([[u[2 * c]], [u[2 * c + 1]]])
+                qDesired = q0Point + tpseudo * uProjectedPoint
+                imposedAcceleration[2 * c: 2 * c + 1] = (qDesired - q0Point) / dt - u0Point
+                mMatInv[2 * c: 2 * c + 1, 2 * c : 2 * c + 1] = np.array([[0, 0], [0, 0]])
+            # Case 2: one dof is constrained
+            elif dofHelper.mapCons[2 * c + 1] == 1:
+                dY = q0[2 * c + 1] - slopeWall(xPos) * q0[2 * c]
+                dRDesired = dY * math.sin(thetaNormal(xPos))
+                q0Point = np.array([[q0[2 * c]], [q0[2 * c + 1]]])
+                u0Point = np.array([[u[2 * c]], [u[2 * c + 1]]])
+                qDesired = q0Point - nWall(xPos) * dRDesired
+                imposedAcceleration[2 * c : 2 * c + 1] = (qDesired - q0Point) / dt - nWall(xPos) * np.dot(u0Point, nWall(xPos))
+                mMatInv[2 * c: 2 * c + 1, 2 * c: 2 * c + 1] = invMass(xPos) * np.array([[1 / m[2 * c], 0], [0, 1 / m[2 * c + 1]]])
+            else:
+                imposedAcceleration[2 * c : 2 * c + 1] = 0
+                mMatInv[2 * c: 2 * c + 1, 2 * c: 2 * c + 1] = np.array([[1 / m[2 * c], 0], [0, 1 / m[2 * c + 1]]])
 
-        f = reactionForces
         # Newton-Raphson scheme
-        iter = 0
-        while True:
-            # get forces
-            Fb, Jb = getFb(qCurrentIterate, EI, nv, voronoiRefLen, -2 * pi / nv, isCircular=True)
-            Fs, Js = getFs(qCurrentIterate, EA, nv, refLen, isCircular=True)
-            Fg = m * garr
-            Fp, Jp = getFp(qCurrentIterate, nv, refLen, InflationPressure)
-            Ff, Jf = getFf(u, nv, dofHelper, f, 0.5)
+        iter = 0 # number of iterations
 
-            Forces = Fb + Fs + Fg + Fp + Ff
+        # Initial guess for delta V
+        dV = (q - q0) / dt - u
+
+        while True:
+            # Figure out the velocities
+            uNew = u + dV
+            # Figure out the positions
+            q = q0 + dt * uNew
+
+            # Get forces
+            Fb, Jb = getFb(q, EI, nv, voronoiRefLen, -2 * pi / nv, isCircular=True)
+            Fs, Js = getFs(q, EA, nv, refLen, isCircular=True)
+            Fg = m * garr
+            Fp, Jp = getFp(q, nv, refLen, InflationPressure)
+
+            Forces = Fb + Fs + Fg + Fp
 
             # Equation of motion
-            f = m * ((qCurrentIterate - q0) / dt - u) / dt - Forces
-
-            fUncons = dofHelper.unconstrained_v(f)
-
-            # Manipulate the Jacobians
-            Jelastic = Jb + Js
-            Jexternal = Jp + Jf
-            J = mMat / dt ** 2 - Jelastic - Jexternal
-
-            # Newton's update
-            qUncons = qUncons - np.linalg.solve(dofHelper.unconstrained_m(J), fUncons)
-            dofHelper.write_unconstrained_back(qCurrentIterate, qUncons)
+            ForceAll = m * dV / dt - Forces  # actual force
+            f = dV - dt * mMatInv * Forces - imposedAcceleration # force used for Baraff-Witkin mass modification
 
             # Get the norm
-            normfNew = np.linalg.norm(fUncons)
+            normf = np.linalg.norm(f) * np.mean(m) / dt
 
-            # Update iteration number
-            iter += 1
-            print('Iter=%d, error=%.8f' % (iter - 1, normfNew))
-
-            if normfNew < tol * ScaleSolver:
+            if normf < tol * ScaleSolver:
                 break
             if iter > maximum_iter:
                 raise Exception('Cannot converge')
-        return qCurrentIterate, f
+
+            Jelastic = Jb + Js + Jp
+            J = Ident2nv - dt ** 2 * mMatInv * Jelastic
+            dV = dV - np.linalg.solve(J, f)
+            iter += 1
+
+        return q, ForceAll
 
     # Time marching
     ctime = 0
@@ -172,41 +202,7 @@ def runDER():
         print('t = %f, dt = %f' % (ctime, dt))
         steps_attempted += 1
 
-        qNew, reactionForces = objfun(q0)
-        if checkMaxDuAndHackTimeIfNecessary(reactionForces):
-            continue
-
-        dofHelperBackup = deepcopy(dofHelper)  # in case we need to go back in time, we'll need to restore original dof configuration
-
-        # inspect reactionForces to see if any one is negative, which should be UNCONSTRAINED
-        needToFree = [unconsInd for unconsInd in dofHelper._constrained if (reactionForces[unconsInd] < 0)]
-        if needToFree:
-            dofHelper.unconstraint(needToFree)
-            print('Contact condition updated. Remove constraints and recompute')
-            qNew, reactionForces = objfun(q0)
-        if checkMaxDuAndHackTimeIfNecessary(reactionForces):
-            dofHelper = dofHelperBackup
-            continue
-
-        # inspect qNew to see if any one falls below ground, which should be CONSTRAINED
-        while True:
-            q0Effective = None
-            for c in range(nv):
-                index = 2 * c + 1
-                if qNew[index] < 0:  # y < 0: bad!
-                    if q0Effective is None:
-                        q0Effective = q0.copy()
-                    q0Effective[index] = 0
-                    dofHelper.constraint([index])
-            if q0Effective is None:
-                break
-            else:
-                print('Contact condition violated. Add constraints and recompute')
-                qNew, reactionForces = objfun(q0Effective)
-
-        if checkMaxDuAndHackTimeIfNecessary(reactionForces):
-            dofHelper = dofHelperBackup
-            continue
+        qNew, ForceAll = timeIntegration(q0, nv, dofHelper.mapCons, u.copy(), dt, objfunBW)
 
         ctime += dt
         u = (qNew - q0) / dt
@@ -216,11 +212,6 @@ def runDER():
 
         output = {'time': ctime, 'data': q0.tolist()}
         outputData.append(output)
-
-        relax_ratio = limit_f_times_dt / np.amax(reactionForces) / dt
-        if (dt < max_dt) and (relax_ratio > 1):
-            dt = min((0.6 * relax_ratio + 0.4) * dt, max_dt)
-            print('Increasing dt')
 
     print('Steps attempted: %d' % steps_attempted)
     print('Steps succeeded: %d' % (len(outputData) - 1))

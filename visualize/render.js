@@ -87,13 +87,16 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
 
         // mesh: ground (if ground is enabled)
         if (meta.ground) {
+            const groundAngle = (meta.groundAngle || 0) * Math.PI / 180;
             const gndGeometry = new THREE.PlaneGeometry((maxX - minX) * 1.5, (maxX - minX) * 1.5 * 1373 / 2082);
             const gndMaterial = new THREE.MeshLambertMaterial(Object.assign({}, groundMaterialParameter));
             gndMaterial.side = THREE.DoubleSide;
             const gndPlane = new THREE.Mesh(gndGeometry, gndMaterial);
             gndPlane.receiveShadow = options.shadow;
-            gndPlane.position.set((minX + maxX) / 2, - meta.radius, 0);
-            gndPlane.lookAt(new THREE.Vector3((minX + maxX) / 2, 1, 0));
+            const correspondingY = Math.tan(groundAngle) * (minX + maxX) / 2 - meta.radius / Math.cos(groundAngle);
+            gndPlane.position.set((minX + maxX) / 2, correspondingY, 0);
+            gndPlane.lookAt(new THREE.Vector3((minX + maxX) / 2 - Math.sin(groundAngle), correspondingY + Math.cos(groundAngle), 0));
+            gndPlane.rotateZ(Math.PI / 2);
             scene.add(gndPlane);
         }
 

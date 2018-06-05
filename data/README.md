@@ -6,8 +6,9 @@ Each data JSON file will follow the following format (which the Python code will
     {
         "meta": { // "meta": [REQUIRED] basic imformation for rendering
             "radius": 0.005, // "radius": [REQUIRED] radius of rod for rendering
-            "closed": false // "closed": [REQUIRED] whether it is a staight beam (false) or a circular shape (true),
-            "ground": false // "ground": [OPTIONAL] if set to true, will draw a ground at y = 0
+            "closed": false, // "closed": [REQUIRED] whether it is a staight beam (false) or a circular shape (true),
+            "ground": false, // "ground": [OPTIONAL] if set to true, will draw a ground at y = 0
+            "groundAngle": -15 // "groundAngle": [OPTIONAL] angle of ground, in degrees, CCW
         },
         "frames": [ // "frames": [REQUIRED] an array of frames, must be in correct order
             {

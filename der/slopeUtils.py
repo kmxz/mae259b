@@ -3,21 +3,20 @@ import numpy as np
 
 
 # thetaNormal.m
-def thetaNormal(x):
-    return math.radians(75)
+thetaNormal = math.radians(75)
 
 
 # slopeWall.m
 def slopeWall(x):
-    return math.tan(thetaNormal(x) + math.pi / 2)
+    return math.tan(thetaNormal + math.pi / 2)
 
 
 # nWall.m
 def nWall(x):
-    return np.array([math.cos(thetaNormal(x)), math.sin(thetaNormal(x))])
+    return np.array([[math.cos(thetaNormal)], [math.sin(thetaNormal)]])
 
 
 # invMass.m
 def invMass(x):
     n = nWall(x)
-    return np.eye(2, 2) - n * np.array([n]).T
+    return np.eye(2, 2) - n * n.T

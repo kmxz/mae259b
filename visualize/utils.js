@@ -26,6 +26,7 @@ MAE259B.setUpAnimOptions = () => {
         showDt: document.getElementById('animopt-showdt').checked,
         shadow: document.getElementById('animopt-shadow').checked,
         noBook: document.getElementById('animopt-nobook').checked,
+        vpTrack: document.getElementById('animopt-track').checked,
         screenshotEvery: Math.max(parseFloat(el$screenshot.value) || 0, 0)
     });
 };

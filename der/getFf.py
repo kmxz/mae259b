@@ -13,5 +13,7 @@ def getFf(q, u, nv, mapCons, μ, ForceAll):
             if uNorm == 0:
                 continue
             normalForce = np.dot(ForceAll[2 * c : 2 * c + 2], nWall(q[2 * c]))
+            if normalForce <= 0:
+                continue
             rv[2 * c : 2 * c + 2] = - (parallelU / uNorm) * μ * normalForce
     return rv

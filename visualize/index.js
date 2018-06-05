@@ -92,7 +92,7 @@ MAE259B.init = () => {
                         while (currentId.length < 5) {
                             currentId += String.fromCharCode(Math.random() * 26 + 97);
                         }
-                        window.alert('Screenshot will be save with a prefix of ' + currentId);
+                        window.alert('Screenshot will be save with a prefix of ' + currentId + ',');
                     }
                     jsonData.then(data => {
                         data.frames.forEach(frame => {

@@ -18,26 +18,58 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
 
     const scene = new THREE.Scene();
 
-    let minX = Number.MAX_VALUE;
-    let maxX = Number.MIN_VALUE;
-    let minY = Number.MAX_VALUE;
-    let maxY = Number.MIN_VALUE;
-    frames.forEach(row => row.points.forEach(entry => {
-        if (entry.x > maxX) { maxX = entry.x; }
-        if (entry.x < minX) { minX = entry.x; }
-        if (entry.y > maxY) { maxY = entry.y; }
-        if (entry.y < minY) { minY = entry.y; }
-    }));
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    let maxWidth = 0;
+    let maxHeight = 0;
+    frames.forEach(row => {
+        let frameMinX = Number.POSITIVE_INFINITY;
+        let frameMaxX = Number.NEGATIVE_INFINITY;
+        let frameMinY = Number.POSITIVE_INFINITY;
+        let frameMaxY = Number.NEGATIVE_INFINITY;
+        row.points.forEach(entry => {
+            if (entry.x < frameMinX) { frameMinX = entry.x; }
+            if (entry.x > frameMaxX) { frameMaxX = entry.x; }
+            if (entry.y < frameMinY) { frameMinY = entry.y; }
+            if (entry.y > frameMaxY) { frameMaxY = entry.y; }
+        });
+        if (frameMinX < minX) { minX = frameMinX; }
+        if (frameMaxX > maxX) { maxX = frameMaxX; }
+        if (frameMinY < minY) { minY = frameMinY; }
+        if (frameMaxY > maxY) { maxY = frameMaxY; }
+        const width = frameMaxX - frameMinX;
+        const height = frameMaxY - frameMinY;
+        if (width > maxWidth) {
+            console.log('WIDTH @ ' + row.time);
+            console.log('min '+ frameMinX + ' max' + frameMaxX);
+            maxWidth = width;
+        }
+        if (height > maxHeight) { maxHeight = height; }
+    });
     const path = new THREE.CatmullRomCurve3(frames[0].points, meta.closed);
 
+    console.log(maxWidth);
+    console.log(maxHeight);
+
     // configure the camera
-    const cameraZ4Y = (maxY - minY + 4 * meta.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
-    const cameraZ4X = ((maxX - minX + 4 * meta.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
+    const cameraZ4Y = ((options.vpTrack ? maxHeight : (maxY - minY)) + 4 * meta.radius) / 1.75 / Math.tan(Math.PI * 45 / 360); // https://stackoverflow.com/a/23361117/2098471
+    const cameraZ4X = (((options.vpTrack ? maxWidth : (maxX - minX)) + 4 * meta.radius) * destHeight / destWidth) / 1.75 / Math.tan(Math.PI * 45 / 360);
     const baseZ = Math.max(cameraZ4X, cameraZ4Y);
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, baseZ / 1000, baseZ * 2000);
-    const baseCameraPosition = new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, baseZ);
-    camera.position.set(baseCameraPosition.x, baseCameraPosition.y, baseCameraPosition.z);
+    camera.position.set((minX + maxX) / 2, (minY + maxY) / 2, baseZ);
 
+    // orbit controls of the camera
+    let controls = null;
+    if (!options.vpTrack) {
+        controls = new THREE.OrbitControls(camera, el$canvas);
+        controls.target = new THREE.Vector3((minX + maxX) / 2, (minY + maxY) / 2, 0);
+        controls.saveState();
+        controls.update();
+    }
+
+    // configure lights
     scene.add(new THREE.AmbientLight(0xccccff, 0.75));
     const pointLight = new THREE.PointLight(0xffff99, 0.75);
     pointLight.position.set((minX + maxX) / 2, maxY + meta.radius + maxY - minY, 0);
@@ -49,12 +81,6 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
         pointLight.shadow.camera.far = baseZ * 2000;
     }
     scene.add(pointLight);
-
-    // orbit controls of the camera
-    const controls = new THREE.OrbitControls(camera, el$canvas);
-    controls.target = new THREE.Vector3(baseCameraPosition.x, baseCameraPosition.y, 0);
-    controls.saveState();
-    controls.update();
 
     Promise.all([rodTexture, groundMaterialConfig]).then(([rodMaterialTexture, groundMaterialParameter]) => {
         // everything's ready. start creating actual meshes
@@ -139,6 +165,14 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
             rodGeometry.copy(new THREE.TubeBufferGeometry(new THREE.CatmullRomCurve3(nodes, meta.closed), sections, meta.radius, options.showNodes ? 12 : 24, meta.closed));
             rodGeometry.needUpdate = true;
 
+            if (options.vpTrack) {
+                let xC = 0; let yC = 0;
+                nodes.forEach(node => { xC += node.x; yC += node.y; });
+                xC /= nodes.length; yC /= nodes.length;
+                camera.position.set(xC, yC, baseZ);
+                camera.lookAt(xC, yC, 0);
+            }
+
             MAE259B.setTc(el$display, 'Animating: t = ' + secondsElapsed.toFixed(3));
             renderer.clear();
             renderer.render(scene, camera);
@@ -199,7 +233,11 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
                 animationActive = true;
             });
             buttons.reset.addEventListener('click', () => {
-                controls.reset();
+                if (controls) {
+                    controls.reset();
+                } else {
+                    window.alert('Camera cannot be adjusted when viewport tracking is on.');
+                }
             });
             requestAnimationFrame(animate);
         }

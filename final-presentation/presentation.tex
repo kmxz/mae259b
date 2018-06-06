@@ -195,6 +195,21 @@
 	
 		However, in our scenario, normal force is always relatively small. $f_i^{friction} > \mu_{static} f_i^{normal}$ happens all the time. Static friction never get applied. Dynamic pressure is simply added to $F^{external}$.
 	\end{frame}
+	\begin{frame}{``Rolling ribbon'' (no internal ``pressure'')}
+		Different Young's modulus, other parameters kept the same:
+		\begin{widecenter}
+			\resvideo{roll-2e6}{5.35875}{3.49875}
+			\resvideo{roll-3e6}{5.35875}{3.49875}\\
+			\resvideo{roll-4e6}{5.35875}{3.49875}
+			\resvideo{roll-8e6}{5.35875}{3.49875}
+		\end{widecenter}
+	\end{frame}
+	\begin{frame}{``Rolling ribbon'' (no internal ``pressure'')}
+		\begin{center}
+			\includegraphics[width=0.7\textwidth]{res/rolling-ribbon.png}\\
+			\footnotesize Figure from ``Rolling Ribbons'' (P. S. Raux \textit{et al.}, 2010)
+		\end{center}
+	\end{frame}
 	\begin{frame}{Variable inflation pressure}
 		Recall that we discretized the inflation pressure as below:
 		\begin{widecenter}
@@ -229,21 +244,6 @@
 		
 		Assume the temperature is constant. Then $p \propto \frac1V$.
 	\end{frame}
-	\begin{frame}{``Rolling ribbon'' (no internal ``pressure'')}
-		Different Young's modulus, other parameters kept the same:
-		\begin{widecenter}
-			\resvideo{roll-2e6}{5.35875}{3.49875}
-			\resvideo{roll-3e6}{5.35875}{3.49875}\\
-			\resvideo{roll-4e6}{5.35875}{3.49875}
-			\resvideo{roll-8e6}{5.35875}{3.49875}
-		\end{widecenter}
-	\end{frame}
-	\begin{frame}{``Rolling ribbon'' (no internal ``pressure'')}
-		\begin{center}
-			\includegraphics[width=0.7\textwidth]{res/rolling-ribbon.png}\\
-			\footnotesize Figure from ``Rolling Ribbons'' (P. S. Raux \textit{et al.}, 2010)
-		\end{center}
-	\end{frame}
 	\begin{frame}{Variable inflation pressure}
 		For computing the internal volume, we take the area of the 2D ring. Since we already discretized the structure into a polygon, we can use shoelace formula to calculate area:
 		$$A = \frac12\left[\sum_{i=1}^{n-1}x_iy_{i+1} + x_ny_1 - \sum_{i=1}^{n-1} x_{i+1}y_i - x_1y_n\right]$$
@@ -259,5 +259,11 @@
 			\resvideo{pressure-inv}{5.53}{4.665}
 			\resvideo{pressure-var}{5.53}{4.665}
 		\end{widecenter}
+	\end{frame}
+	\begin{frame}{Future improvements}
+		\begin{itemize}
+			\item 3-D shell (we've started, but shelved)
+			\item Collision detection (we've started)
+		\end{itemize}
 	\end{frame}
 \end{document}

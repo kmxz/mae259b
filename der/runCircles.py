@@ -308,7 +308,7 @@ def runDER():
                 for c in range(nv):
                     if polygon.contains(Point(q_target[2 * c], q_target[2 * c + 1])):
                         # we have a problem here
-                        
+                        pass
 
         q0_AN = q0_work_AN
         u_AN = u_work_AN

@@ -13,7 +13,6 @@ Files and directories
 ----
 - `index.html` and `list` in root directory is solely for *GitHub Pages* use.
 - `der/`: python code for DER itself
-    - `runBeam.py`: implementation of discrete elastic rods, for 2D straight beams. Results saved to `data/` directory.
     - `runCircle.py`: 2D elastic rods in a circular shape. Results saved to `data/` directory.
     - Other `.py` files are included modules. See the comments in the beginning of each file.
 - `data/`: generated data files (in JSON format).

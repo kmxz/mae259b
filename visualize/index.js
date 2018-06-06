@@ -95,12 +95,15 @@ MAE259B.init = () => {
                         window.alert('Screenshot will be save with a prefix of ' + currentId + ',');
                     }
                     jsonData.then(data => {
+                        const nos = data.meta.numberOfStructure;
                         data.frames.forEach(frame => {
-                            let output = [];
-                            for (let i = 0; i < frame.data.length; i += 2) {
-                                output.push(new THREE.Vector3(frame.data[i], frame.data[i + 1] * options.exaggerateY, 0));
-                            }
-                            frame.points = output;
+                            frame.structures = (nos ? frame.data : [frame.data]).map(input => {
+                                let output = [];
+                                for (let i = 0; i < input.length; i += 2) {
+                                    output.push(new THREE.Vector3(input[i], input[i + 1] * options.exaggerateY, 0));
+                                }
+                                return output;
+                            });
                             delete frame.data;
                         });
 

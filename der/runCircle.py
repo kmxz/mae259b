@@ -25,10 +25,10 @@ def runDER():
     limit_f_times_dt = 0.002
 
     # initial center of circle
-    x0 = [0.0, 2.0]
+    x0 = [0.0, 0.2]
 
     # initial inflation pressure (N/m)
-    InflationPressure = 10
+    InflationPressure = 0
 
     # circle radius
     CircleRadius = 0.15
@@ -43,22 +43,22 @@ def runDER():
     r0 = 3.25e-3
 
     # Young's modulus
-    Y = 1e7
+    Y = 1.5e6
 
     # gravity
     g = [0.0, -9.81]
 
     # dynamic friction coeff.
-    μ = 0.4
+    μ = 0.5
 
     # Tolerance on force function. This is multiplied by ScaleSolver so that we do not have to update it based on edge length and time step size
-    tol = 1e-7
+    tol = 5e-7
 
     # Maximum number of iterations in Newton Solver
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 10
+    totalTime = 12.5
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4
@@ -105,8 +105,8 @@ def runDER():
 
     u = np.zeros(2 * nv)
     for c in range(nv):
-        u[2 * c] = -5
-        u[2 * c + 1] = -10
+        u[2 * c] = 0.0
+        u[2 * c + 1] = 0.0
 
     # set dt as max at the beginning
     dt = max_dt
@@ -261,7 +261,7 @@ def runDER():
                 fNormal = np.dot(fReaction, nWall(xPos))
 
                 # Based on reaction force, release the constraint
-                if fNormal <= 0 and yPos >= boundaryY:  # reaction force is negative
+                if fNormal <= 0 and yPos >= boundaryY - 2e-6:  # reaction force is negative
                     print("Removing constraint @ %d" % c)
                     mapCons[2 * c + 1] = 0  # unconstrain it
                     changeMade = True

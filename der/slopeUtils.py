@@ -3,7 +3,7 @@ import numpy as np
 
 
 # thetaNormal.m
-thetaNormal = math.radians(85)
+thetaNormal = math.radians(60)
 
 
 # slopeWall.m

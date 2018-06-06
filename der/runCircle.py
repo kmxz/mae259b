@@ -43,13 +43,13 @@ def runDER():
     r0 = 3.25e-3
 
     # Young's modulus
-    Y = 1.5e6
+    Y = 3e6
 
     # gravity
     g = [0.0, -9.81]
 
     # dynamic friction coeff.
-    μ = 0.5
+    μ = 0.2
 
     # Tolerance on force function. This is multiplied by ScaleSolver so that we do not have to update it based on edge length and time step size
     tol = 5e-7
@@ -58,7 +58,7 @@ def runDER():
     maximum_iter = 100
 
     # Total simulation time (it exits after t=totalTime)
-    totalTime = 12.5
+    totalTime = 7.5
 
     # Utility quantities
     EI = Y * pi * r0 ** 4 / 4

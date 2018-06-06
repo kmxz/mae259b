@@ -121,7 +121,9 @@ MAE259B.render = ({ meta, frames }, options, { saveScreenshot, el$canvas, el$dis
             const correspondingY = Math.tan(groundAngle) * (minX + maxX) / 2 - meta.radius / Math.cos(groundAngle);
             gndPlane.position.set((minX + maxX) / 2, correspondingY, 0);
             gndPlane.lookAt(new THREE.Vector3((minX + maxX) / 2 - Math.sin(groundAngle), correspondingY + Math.cos(groundAngle), 0));
-            // gndPlane.rotateZ(Math.PI / 2);
+            if (meta.groundAngle !== 90) {
+                gndPlane.rotateZ(Math.PI / 2)
+            }
             scene.add(gndPlane);
         }
 

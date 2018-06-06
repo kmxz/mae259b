@@ -1,6 +1,7 @@
 import math
 from math import pi, sin, cos
 import numpy as np
+from shapely.geometry import Polygon, Point
 
 from polygonUtils import area
 from cliUtils import cliRun
@@ -25,13 +26,13 @@ def runDER():
     min_dt = 1e-4
 
     # limit f*dt per step
-    limit_f_times_dt = 0.005
+    limit_f_times_dt = 0.0025
 
     # initial center of circle
-    x0_AN = [[-0.5, 0.25], [0.5, 0.25]]
+    x0_AN = [[-0.5, 0.75], [0.5, 0.75]]
 
     # initial bulk velocity
-    u0_AN = [[1.25, -0.25], [-1.25, 0]]
+    u0_AN = [[1.25, -2.5], [-1.25, -2.5]]
 
     # initial inflation pressure (N/m)
     InflationPressure_AN = [2.5, 2.5]
@@ -137,7 +138,7 @@ def runDER():
     # set dt as max at the beginning
     dt = max_dt
 
-    def objfunBW(q, uProjected, oa):
+    def objfunBW(q, oa, mapCons):
         nonlocal ForceAll_AN
 
         mMatInv = np.diag(1 / m_AN[oa])
@@ -145,34 +146,14 @@ def runDER():
         imposedAcceleration = np.zeros(2 * nv)
 
         q0 = q0_AN[oa]
-        mapCons = mapCons_AN[oa]
         u = u_AN[oa]
         m = m_AN[oa]
 
         # Figure out the imposed acceleration
         for c in range(nv):
             xPos = q0[2 * c]
-            # Case 1: both dofs are constrained
-            if mapCons[2 * c] and mapCons[2 * c + 1] == 1:
-                uProjectedPoint = uProjected[2 * c : 2 * c + 2]
-                uPerp = np.dot(uProjectedPoint, nWall(xPos)) * nWall(xPos)
-                normU = np.linalg.norm(uPerp)
-                if normU < (CircumferenceLength_AN[oa] / 9.81) * 1e-3: # very small
-                    normUinv = 0
-                else:
-                    normUinv = 1 / normU
-                dY = q0[2 * c + 1] - slopeWall(xPos) * q0[2 * c]
-                dRDesired = dY * math.sin(thetaNormal)
-                tpseudo = dRDesired * normUinv
-
-                q0Point = np.array([q0[2 * c], q0[2 * c + 1]])
-                u0Point = np.array([u[2 * c], u[2 * c + 1]])
-                qDesired = q0Point + tpseudo * uProjectedPoint
-
-                imposedAcceleration[2 * c: 2 * c + 2] = (qDesired - q0Point) / dt - u0Point
-                mMatInv[2 * c: 2 * c + 2, 2 * c: 2 * c + 2] = np.array([[0, 0], [0, 0]])
             # Case 2: one dof is constrained
-            elif mapCons[2 * c + 1] == 1:
+            if mapCons[2 * c + 1] == 1:
                 dY = q0[2 * c + 1] - slopeWall(xPos) * q0[2 * c]
                 dRDesired = dY * math.sin(thetaNormal)
                 q0Point = np.array([q0[2 * c], q0[2 * c + 1]])
@@ -262,11 +243,9 @@ def runDER():
             q0 = q0_AN[oa]
             mapCons = mapCons_work_AN[oa]
 
-            uProjected = u_AN[oa].copy()
-
             # step 1: predictor
 
-            qNew, ForceAll = objfunBW(q0, uProjected, oa)
+            qNew, ForceAll = objfunBW(q0, oa, mapCons)
             if checkMaxAndHackTimeIfNecessary(ForceAll):
                 redo = True
                 break
@@ -283,10 +262,6 @@ def runDER():
                 if (not mapCons[2 * c + 1]) and yPos < boundaryY:
                     print("Adding constraint @ %d" % c)
                     mapCons[2 * c + 1] = 1
-
-                    uProjected[2 * c] = (qNew[2 * c] - q0[2 * c]) / dt
-                    uProjected[2 * c + 1] = (qNew[2 * c + 1] - q0[2 * c + 1]) / dt
-
                     changeMade = True
 
             # detect and delete constrained dof
@@ -308,7 +283,7 @@ def runDER():
                         changeMade = True
 
             if changeMade:
-                qNew, ForceAll = objfunBW(q0, uProjected, oa)
+                qNew, ForceAll = objfunBW(q0, oa, mapCons)
 
             if checkMaxAndHackTimeIfNecessary(ForceAll):
                 redo = True
@@ -323,17 +298,17 @@ def runDER():
             continue
 
         # detect collision with each other
-        assert (OAN == 2)
-        for c0 in range(nv):  # obj0
-            x01 = q0_AN[0][2 * c0 - 2]
-            y01 = q0_AN[0][2 * c0 - 1]
-            x02 = q0_AN[0][2 * c0]
-            y02 = q0_AN[0][2 * c0 + 1]
-            for c1 in range(nv):  # obj1
-                x11 = q0_AN[1][2 * c1 - 2]
-                y11 = q0_AN[1][2 * c1 - 1]
-                x12 = q0_AN[1][2 * c1]
-                y12 = q0_AN[1][2 * c1 + 1]
+        for target in range(OAN):
+            q_target = q0_work_AN[target]
+            for surface in range(OAN):
+                if target == surface:
+                    continue
+                q_surface = q0_work_AN[surface]
+                polygon = Polygon([(q_surface[2 * c], q_surface[2 * c + 1]) for c in range(nv)])
+                for c in range(nv):
+                    if polygon.contains(Point(q_target[2 * c], q_target[2 * c + 1])):
+                        # we have a problem here
+                        
 
         q0_AN = q0_work_AN
         u_AN = u_work_AN

@@ -41,6 +41,24 @@
 
 \begin{document}
     \maketitle
+    \begin{frame}{Background}
+    	Elasticity and inner pressure of a ball is related to the rebounding motion of the ball.
+    	\begin{center}
+    		\includegraphics[width=0.5\textwidth]{res/football.jpg}\\
+    		\footnotesize Deflegate scandal of New England Patriots
+    	\end{center}
+    \end{frame}
+    \begin{frame}{Background}
+    	\begin{center}
+			\begin{tabular}{c|c}
+				\textbf{Finite Element Method} & \textbf{Discrete Elastic Rod Model}\\
+				& \\\hline
+				& \\
+				Widely used in industry & What we are doing in this project\\
+				Abaqus, CATIA, ANSYS, etc. & (A lot faster)
+			\end{tabular}
+		\end{center}
+	\end{frame}
     \begin{frame}{Review of our midterm presentation}
     	Started from simplest 2D DER
     	\begin{itemize}
@@ -210,6 +228,21 @@
 		$$pV = nRT$$
 		
 		Assume the temperature is constant. Then $p \propto \frac1V$.
+	\end{frame}
+	\begin{frame}{``Rolling ribbon'' (no internal ``pressure'')}
+		Different Young's modulus, other parameters kept the same:
+		\begin{widecenter}
+			\resvideo{roll-2e6}{5.35875}{3.49875}
+			\resvideo{roll-3e6}{5.35875}{3.49875}\\
+			\resvideo{roll-4e6}{5.35875}{3.49875}
+			\resvideo{roll-8e6}{5.35875}{3.49875}
+		\end{widecenter}
+	\end{frame}
+	\begin{frame}{``Rolling ribbon'' (no internal ``pressure'')}
+		\begin{center}
+			\includegraphics[width=0.7\textwidth]{res/rolling-ribbon.png}\\
+			\footnotesize Figure from ``Rolling Ribbons'' (P. S. Raux \textit{et al.}, 2010)
+		\end{center}
 	\end{frame}
 	\begin{frame}{Variable inflation pressure}
 		For computing the internal volume, we take the area of the 2D ring. Since we already discretized the structure into a polygon, we can use shoelace formula to calculate area:
